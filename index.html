@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Pacific Frontline '44 — BO2 Arsenal Edition (Fan Tribute)</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b0d08'/%3E%3Ctext x='16' y='23' font-size='20' text-anchor='middle' fill='%23ffb454'%3E%E2%98%85%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="style.css">
+<script type="importmap">
+{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js" } }
+</script>
+</head>
+<body>
+<canvas id="game"></canvas>
+
+<!-- damage vignette / flash -->
+<div id="dmg-vignette"></div>
+<div id="heal-flash"></div>
+<div id="scope-overlay" class="hidden">
+  <div class="scope-circle"></div>
+  <div class="scope-cross-h"></div>
+  <div class="scope-cross-v"></div>
+</div>
+
+<!-- HUD -->
+<div id="hud" class="hidden">
+  <div id="topbar">
+    <div id="objective-box">
+      <div id="wave-label">WAVE <span id="wave-num">1</span>/8</div>
+      <div id="enemies-label"><span id="enemies-left">0</span> HOSTILES LEFT</div>
+    </div>
+    <div id="score-box">
+      <div id="score">0</div>
+      <div id="score-label">SCORE</div>
+    </div>
+    <canvas id="minimap" width="132" height="132"></canvas>
+  </div>
+
+  <div id="killfeed"></div>
+  <div id="wave-banner" class="hidden"><div id="wave-banner-title">WAVE 1</div><div id="wave-banner-sub">HOLD THE LINE</div></div>
+  <div id="hitmarker"><span></span><span></span><span></span><span></span></div>
+  <div id="crosshair"><span class="ch-t"></span><span class="ch-b"></span><span class="ch-l"></span><span class="ch-r"></span><span class="ch-dot"></span></div>
+  <div id="hitdir"></div>
+  <div id="dmg-numbers"></div>
+
+  <div id="bottombar">
+    <div id="health-wrap">
+      <div id="health-bar"><div id="health-fill"></div></div>
+      <div id="health-num">100</div>
+    </div>
+    <div id="ammo-box">
+      <div id="weapon-name">TYPE-25 “JUNGLE”</div>
+      <div id="ammo"><span id="ammo-mag">30</span><span id="ammo-div">/</span><span id="ammo-reserve">180</span></div>
+      <div id="reload-tip" class="hidden">RELOADING…</div>
+      <div id="slots">
+        <button class="slot" data-slot="0">1</button>
+        <button class="slot" data-slot="1">2</button>
+        <button class="slot locked" data-slot="2">3 🔒</button>
+      </div>
+    </div>
+  </div>
+  <button id="pause-btn" aria-label="Pause">II</button>
+</div>
+
+<!-- Touch controls -->
+<div id="touch-ui" class="hidden">
+  <div id="stick-zone"><div id="stick-base"><div id="stick-knob"></div></div></div>
+  <div id="look-zone"></div>
+  <div id="touch-buttons">
+    <button id="btn-fire" class="tbtn big">FIRE</button>
+    <button id="btn-ads" class="tbtn">ADS</button>
+    <button id="btn-reload" class="tbtn">RLD</button>
+    <button id="btn-weapon" class="tbtn">WPN</button>
+    <button id="btn-jump" class="tbtn">JMP</button>
+    <button id="btn-sprint" class="tbtn">SPR</button>
+  </div>
+</div>
+
+<!-- Main menu -->
+<div id="menu" class="screen">
+  <div class="menu-inner">
+    <div class="menu-kicker">FAN-MADE TRIBUTE • ALL MODELS &amp; SOUNDS PROCEDURAL / ORIGINAL</div>
+    <h1>PACIFIC<br>FRONTLINE <span>'44</span></h1>
+    <div class="menu-sub">WaW-style island assault × BO2-style arsenal • 3D FPS for phone &amp; tablet</div>
+    <div class="menu-card">
+      <div class="menu-card-title">◉ OPERATION BRIEFING — PELELIU RIDGE</div>
+      <p>1944. Your squad is pinned down on a Pacific ridge. Waves of enemy infantry are pushing the bunkers.
+      You carry <b>anachronistic prototypes</b> inspired by Black Ops 2 firepower — a what-if arsenal dropped into World at War.
+      Survive <b>8 waves</b>. Conserve ammo. Aim for the head. Health regenerates behind cover.</p>
+    </div>
+    <div class="menu-card">
+      <div class="menu-card-title">◉ CHOOSE PRIMARY (BO2-style prototypes)</div>
+      <div id="loadout-grid"></div>
+    </div>
+    <div class="menu-row">
+      <label class="opt">Sensitivity <input id="opt-sens" type="range" min="0.3" max="3" step="0.1" value="1.1"><span id="opt-sens-v">1.1</span></label>
+      <label class="opt">Quality
+        <select id="opt-quality"><option value="auto">Auto</option><option value="high">High</option><option value="low">Low</option></select>
+      </label>
+      <label class="opt chk"><input id="opt-sound" type="checkbox" checked> Sound</label>
+    </div>
+    <div class="menu-row">
+      <button id="start-btn" class="big-btn">▶ DEPLOY</button>
+      <button id="help-btn" class="ghost-btn">Controls</button>
+    </div>
+    <div id="help-panel" class="hidden">
+      <b>📱 Phone/Tablet:</b> left stick = move (push far to sprint) • drag right side = aim • FIRE hold to shoot • ADS zooms • WPN swaps gun • RLD reloads.<br>
+      <b>🖥️ Desktop:</b> click to lock mouse • WASD move • mouse aim • LMB fire • RMB aim • R reload • 1/2/3 weapons • Space jump • Shift sprint • Esc pause.
+    </div>
+    <div class="menu-foot">Best: <span id="menu-best">—</span> • Not affiliated with Activision. Fan tribute with 100% original assets — no ripped models, names parodied.</div>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pause" class="screen hidden">
+  <div class="menu-inner narrow">
+    <h2>❚❚ PAUSED</h2>
+    <div class="menu-row"><button id="resume-btn" class="big-btn">RESUME</button><button id="quit-btn" class="ghost-btn">ABANDON MISSION</button></div>
+    <div class="menu-row"><label class="opt">Sensitivity <input id="opt-sens2" type="range" min="0.3" max="3" step="0.1" value="1.1"></label></div>
+  </div>
+</div>
+
+<!-- Game over / victory -->
+<div id="end" class="screen hidden">
+  <div class="menu-inner narrow">
+    <h2 id="end-title">K.I.A.</h2>
+    <p id="end-text"></p>
+    <div id="end-stats"></div>
+    <div class="menu-row"><button id="retry-btn" class="big-btn">↻ REDEPLOY</button><button id="end-menu-btn" class="ghost-btn">MAIN MENU</button></div>
+  </div>
+</div>
+
+<div id="loading" class="hidden"><div class="loader"></div><div>BUILDING BATTLEFIELD…</div></div>
+<div id="rotate-tip" class="hidden">⟳ Rotate device for best view — portrait works too.</div>
+
+<script type="module" src="game.js"></script>
+</body>
+</html>
