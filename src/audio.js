@@ -3,7 +3,7 @@
 // ============================================================================
 import { S, clamp, rand } from './state.js';
 
-let AC = null, master = null, busSfx = null, busMusic = null, comp = null;
+let AC = null, master = null, busSfx = null, busMusic = null, comp = null, limiter = null, sfxTone = null;
 let engine = null, amb = null;
 
 export function initAudio() {
@@ -11,13 +11,21 @@ export function initAudio() {
   try {
     AC = new (window.AudioContext || window.webkitAudioContext)();
   } catch (e) { return null; }
+  // --- chaîne de sortie : compresseur + limiteur dur (évite la saturation)
   comp = AC.createDynamicsCompressor();
-  comp.threshold.value = -14; comp.knee.value = 22; comp.ratio.value = 9;
-  comp.attack.value = .004; comp.release.value = .25;
+  comp.threshold.value = -20; comp.knee.value = 10; comp.ratio.value = 12;
+  comp.attack.value = .003; comp.release.value = .18;
+  limiter = AC.createDynamicsCompressor();
+  limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20;
+  limiter.attack.value = .001; limiter.release.value = .06;
   master = AC.createGain(); master.gain.value = S.vol;
-  busSfx = AC.createGain(); busSfx.gain.value = 1;
-  busMusic = AC.createGain(); busMusic.gain.value = .5;
-  busSfx.connect(comp); busMusic.connect(comp); comp.connect(master); master.connect(AC.destination);
+  busSfx = AC.createGain(); busSfx.gain.value = .8;
+  busMusic = AC.createGain(); busMusic.gain.value = .22;   // ambiance discrete
+  // filtre « Passe-bas » doux sur les SFX : enlève l'agressivité des hautes fréquences
+  sfxTone = AC.createBiquadFilter();
+  sfxTone.type = 'lowpass'; sfxTone.frequency.value = 7200; sfxTone.Q.value = .5;
+  busSfx.connect(sfxTone); sfxTone.connect(comp);
+  busMusic.connect(comp); comp.connect(limiter); limiter.connect(master); master.connect(AC.destination);
   startAmbience();
   return AC;
 }
@@ -26,11 +34,21 @@ export function setVolume(v) { S.vol = v; if (master) master.gain.setTargetAtTim
 const now = () => (AC ? AC.currentTime : 0);
 const ok = () => AC && AC.state === 'running';
 
+/** évite d'empiler 30 fois le même son (gargouillis, pas, impacts) */
+const _last = Object.create(null);
+function gate(key, ms) {
+  const t = performance.now();
+  if (_last[key] && t - _last[key] < ms) return false;
+  _last[key] = t; return true;
+}
+
 function env(g, t, a, d, peak = 1) { g.gain.setValueAtTime(.0001, t); g.gain.exponentialRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d); }
 
 /** note simple */
 export function tone(f, dur = .1, type = 'square', gain = .15, slide = 0, delay = 0) {
-  if (!ok()) return; const t = now() + delay;
+  if (!ok()) return;
+  if (delay === 0 && !gate('t' + Math.round(f), 35)) return;   // anti-empilement
+  const t = now() + delay;
   const o = AC.createOscillator(), g = AC.createGain();
   o.type = type; o.frequency.setValueAtTime(f, t);
   if (slide) o.frequency.exponentialRampToValueAtTime(Math.max(24, f + slide), t + dur);
@@ -38,7 +56,9 @@ export function tone(f, dur = .1, type = 'square', gain = .15, slide = 0, delay 
 }
 /** salve de bruit filtré (impacts, tirs, pas) */
 export function noise(dur = .15, gain = .3, freq = 1200, type = 'lowpass', q = 1, delay = 0) {
-  if (!ok()) return; const t = now() + delay;
+  if (!ok()) return;
+  if (delay === 0 && !gate('n' + Math.round(freq), 28)) return;
+  const t = now() + delay;
   const n = Math.max(1, Math.floor(AC.sampleRate * dur));
   const buf = AC.createBuffer(1, n, AC.sampleRate), ch = buf.getChannelData(0);
   for (let i = 0; i < n; i++) ch[i] = (Math.random() * 2 - 1) * (1 - i / n) ** 1.4;
@@ -60,19 +80,22 @@ function loopNoise(freq, gain, type = 'bandpass') {
 
 /* ---------------- ambiance + musique ---------------- */
 function startAmbience() {
-  amb = loopNoise(420, .03, 'bandpass'); // vent
-  const drone = AC.createOscillator(), dg = AC.createGain(), dl = AC.createOscillator(), dlg = AC.createGain();
-  drone.type = 'sawtooth'; drone.frequency.value = 55; dg.gain.value = .05;
-  dl.type = 'sine'; dl.frequency.value = 82.5; dlg.gain.value = .04;
-  drone.connect(dg).connect(busMusic); dl.connect(dlg).connect(busMusic); drone.start(); dl.start();
+  // vent lointain : très discret, filtré
+  amb = loopNoise(340, .012, 'lowpass');
+  // drone grave, filtré (soundscape cyberpunk)
+  const droneF = AC.createBiquadFilter();
+  droneF.type = 'lowpass'; droneF.frequency.value = 240; droneF.Q.value = .8;
+  const drone = AC.createOscillator(), dg = AC.createGain();
+  drone.type = 'sawtooth'; drone.frequency.value = 55; dg.gain.value = .022;
+  drone.connect(droneF).connect(dg).connect(busMusic); drone.start();
   const lfo = AC.createOscillator(), lg = AC.createGain();
-  lfo.frequency.value = .07; lg.gain.value = 55; lfo.connect(lg).connect(drone.frequency); lfo.start();
+  lfo.frequency.value = .05; lg.gain.value = 8; lfo.connect(lg).connect(drone.frequency); lfo.start();
   drone._lfo = lfo;
 }
 export function setAmbience(night, rain) {
   if (!amb || !ok()) return;
-  amb.f.frequency.setTargetAtTime(night ? 260 : 620, now(), 1.5);
-  amb.g.gain.setTargetAtTime(night ? .075 : .035 + rain * .09, now(), 1.2);
+  amb.f.frequency.setTargetAtTime(night ? 200 : 420, now(), 1.5);
+  amb.g.gain.setTargetAtTime(night ? .04 : .022 + rain * .05, now(), 1.2);
 }
 /** tension musicale pendant les vagues */
 export function tension(on) {
@@ -86,7 +109,7 @@ export function tension(on) {
     tensionOsc.o.connect(tensionOsc.f); tensionOsc.o2.connect(tensionOsc.f);
     tensionOsc.f.connect(tensionOsc.g).connect(busMusic);
     tensionOsc.o.start(); tensionOsc.o2.start();
-    tensionOsc.g.gain.setTargetAtTime(.05, now(), 1.2);
+    tensionOsc.g.gain.setTargetAtTime(.022, now(), 1.2);
   } else if (!on && tensionOsc) {
     const t = tensionOsc; tensionOsc = null;
     t.g.gain.setTargetAtTime(.0001, now(), .8);
@@ -131,22 +154,22 @@ export function engineUpdate(speed, maxSpeed, kind = 'buggy') {
 
 /* ---------------- banque de sons ---------------- */
 export const SFX = {
-  pistol: () => { noise(.13, .5, 1500); tone(220, .1, 'square', .22, -140); },
-  rifle: () => { noise(.17, .55, 950, 'lowpass'); tone(130, .14, 'sawtooth', .26, -80); },
-  shotgun: () => { noise(.3, .7, 700); tone(90, .26, 'sawtooth', .3, -50); },
-  dmr: () => { noise(.24, .6, 700); tone(105, .22, 'sawtooth', .3, -70); },
-  silenced: () => { noise(.09, .22, 2400, 'lowpass'); tone(420, .06, 'square', .1, -180); },
+  pistol: () => { noise(.12, .34, 1200); tone(200, .09, 'square', .15, -120); },
+  rifle: () => { noise(.16, .38, 780, 'lowpass'); tone(120, .13, 'sawtooth', .17, -70); },
+  shotgun: () => { noise(.28, .48, 520); tone(85, .24, 'sawtooth', .2, -45); },
+  dmr: () => { noise(.22, .42, 560); tone(100, .2, 'sawtooth', .2, -60); },
+  silenced: () => { noise(.08, .16, 1800, 'lowpass'); tone(400, .06, 'square', .07, -160); },
   melee: () => { noise(.12, .28, 3200); tone(180, .1, 'triangle', .12, -60); },
   swing: () => { noise(.16, .12, 900); },
-  hitFlesh: () => { noise(.09, .32, 600); tone(150, .07, 'square', .14, -70); },
-  hitArmor: () => { noise(.06, .3, 3200, 'bandpass', 6); tone(900, .05, 'square', .12, -400); },
+  hitFlesh: () => { noise(.09, .24, 520); tone(140, .06, 'square', .1, -60); },
+  hitArmor: () => { noise(.06, .2, 2200, 'bandpass', 6); tone(820, .05, 'square', .08, -380); },
   crit: () => { tone(1400, .09, 'triangle', .16, -400); noise(.07, .2, 3000); },
-  zDie: () => { tone(95, .38, 'sawtooth', .24, -45); noise(.2, .18, 500); },
-  zGrowl: (dist) => { const g = clamp(1 - dist / 45, .05, 1); tone(rand(58, 96), .55, 'sawtooth', .07 * g, -18); },
+  zDie: () => { tone(92, .34, 'sawtooth', .16, -40); noise(.18, .12, 420); },
+  zGrowl: (dist) => { const g = clamp(1 - dist / 45, .02, 1); tone(rand(58, 96), .5, 'sawtooth', .04 * g, -16); },
   zShriek: () => { tone(rand(420, 620), .22, 'sawtooth', .1, -260); },
   spit: () => { noise(.24, .24, 1400); tone(320, .2, 'sawtooth', .1, -140); },
-  playerHurt: () => { tone(115, .26, 'sawtooth', .3, -40); noise(.18, .26, 480); },
-  step: () => { noise(.07, .07 + Math.random() * .04, 260 + Math.random() * 120); },
+  playerHurt: () => { tone(110, .24, 'sawtooth', .2, -38); noise(.16, .18, 420); },
+  step: () => { if (!gate('step', 90)) return; noise(.07, .045 + Math.random() * .025, 240 + Math.random() * 100); },
   pickup: () => { tone(760, .08, 'sine', .2, 380); tone(1140, .1, 'sine', .14, 0, .06); },
   heal: () => { tone(540, .18, 'sine', .18, 260); tone(810, .22, 'sine', .12, 0, .1); },
   levelUp: () => { [523, 659, 784, 1046].forEach((f, i) => tone(f, .16, 'triangle', .2, 0, i * .085)); },
@@ -156,9 +179,9 @@ export const SFX = {
   build: () => { tone(300, .1, 'triangle', .22); tone(460, .14, 'triangle', .18, 0, .07); noise(.1, .16, 700); },
   horn: () => { tone(420, .5, 'square', .2); tone(317, .55, 'square', .18, 0, .02); },
   recruit: () => { [440, 554, 659, 880].forEach((f, i) => tone(f, .16, 'triangle', .18, 0, i * .1)); },
-  explode: () => { noise(.55, .8, 260); tone(60, .5, 'sawtooth', .35, -25); },
+  explode: () => { noise(.55, .55, 220); tone(58, .45, 'sawtooth', .24, -22); },
   glass: () => { noise(.3, .3, 5000, 'bandpass', 3); },
-  night: () => { tone(58, 1.4, 'sawtooth', .28, 26); tone(87, 1.2, 'sine', .14, -20, .2); },
+  night: () => { tone(56, 1.4, 'sawtooth', .18, 22); tone(84, 1.2, 'sine', .09, -18, .2); },
   dawn: () => { [392, 523, 659].forEach((f, i) => tone(f, .3, 'sine', .16, 0, i * .16)); },
   click: () => tone(660, .04, 'square', .1),
   reload: () => { noise(.07, .18, 1800); tone(240, .07, 'square', .12, 120, .12); },

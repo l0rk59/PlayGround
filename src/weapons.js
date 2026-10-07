@@ -2,7 +2,7 @@
 //  weapons.js — arsenal, modèle en vue subjective, recul, rechargement, mods
 // ============================================================================
 import * as THREE from 'three';
-import { G, mods, clamp, lerp, rand, V3 } from './state.js';
+import { G, mods, clamp, lerp, rand, V3, weaponPower, UPGRADES } from './state.js';
 import { metal, concrete } from './textures.js';
 import { SFX } from './audio.js';
 import * as FX from './fx.js';
@@ -167,6 +167,27 @@ function partsOf(key) {
   return o;
 }
 
+/** stats effectives d'une arme (niveau courant + chargeur étendu) */
+export function liveStats(key) {
+  const w = WEAPONS[key];
+  const p = weaponPower(key, G.levels[key] || 1);
+  const out = { ...w, dmg: p.dmg, rate: p.rate };
+  if (key === 'grenade') out.dmg = p.dmg;
+  if (w.mag) {
+    const base = w.magSize || 30;
+    const ext = G.accLv.extmag > 0 ? 1 + .2 * G.accLv.extmag : 1;
+    out.magSize = Math.round(base * ext);
+  }
+  return out;
+}
+export function applyMagSize(key) {
+  const w = liveStats(key);
+  if (!w.mag || !G.ammo[w.mag]) return;
+  const a = G.ammo[w.mag];
+  a.cap = w.magSize;
+  a.m = Math.min(a.m, a.cap);
+}
+
 export function selectWeapon(key, silent) {
   if (!WEAPONS[key] || key === G.wpn) return false;
   if (key !== 'grenade' && G.unlocked[key] !== 1) return false;
@@ -200,10 +221,10 @@ export function refreshWeaponModel() {
       sil.rotation.x = Math.PI / 2; sil.position.set(0, .03, -((g.userData.muzzleZ || -.4) + .06));
       g.add(sil); g.userData.sil = sil;
     }
-    g.userData.sil.visible = mods.silencer;
+    g.userData.sil.visible = G.accLv.silencer > 0;
   }
   // lunette (augmente le zoom d'ADS)
-  Wp.scopeBonus = mods.scope ? .32 : 0;
+  Wp.scopeBonus = G.accLv.scope > 0 ? .1 * G.accLv.scope : 0;
   const parts = partsOf(key);
   if (parts && parts.led) parts.led.material.color.setHex(mods.silencer ? 0x5dff8f : 0xff2d78);
 }
@@ -255,14 +276,14 @@ export function setLook(x, y) { INLOOK = x; INLOOKY = y; }
 
 /* ---------------- tir ---------------- */
 export function fireWeapon(target) {
-  const key = G.wpn, w = WEAPONS[key];
+  const key = G.wpn, w = liveStats(key);
   if (Wp.reloadT > 0 || Wp.switchT > 0) return false;
   if (w.throwable) return throwGrenade(target);
   if (w.melee) return meleeSwing(target);
   const a = G.ammo[w.mag];
   if (a.m <= 0) { SFX.deny(); reload(); return false; }
   a.m--; G.shotsFired++;
-  applyRecoil(w.recoil * (mods.grip ? .68 : 1) * (1 - Wp.aim * .25) * (G.grounded ? 1 : 1.7));
+  applyRecoil(w.recoil * (G.accLv.grip > 0 ? Math.pow(.87, G.accLv.grip) : 1) * (1 - Wp.aim * .25) * (G.grounded ? 1 : 1.7));
   const silenced = mods.silencer && (key === 'pistol' || key === 'rifle');
   silenced ? SFX.silenced() : (key === 'shotgun' ? SFX.shotgun() : key === 'dmr' ? SFX.dmr() : key === 'rifle' ? SFX.rifle() : SFX.pistol());
   // flash
@@ -352,17 +373,18 @@ export function reload() {
   const w = WEAPONS[G.wpn];
   if (w.melee || w.throwable || Wp.reloadT > 0) return;
   const a = G.ammo[w.mag];
-  if (a.m >= (w.magSize || 30) || a.r <= 0) return;
+  const cap = liveStats(key).magSize || 30;
+  if (a.m >= cap || a.r <= 0) return;
   Wp.reloadT = Wp.reloadDur = w.reload;
   SFX.reload();
 }
 export function finishReload() {
   const w = WEAPONS[G.wpn]; if (!w || w.melee) return;
-  const a = G.ammo[w.mag]; const need = (w.magSize || 30) - a.m, take = Math.min(need, a.r);
+  const a = G.ammo[w.mag]; const need = (liveStats(G.wpn).magSize || 30) - a.m, take = Math.min(need, a.r);
   a.m += take; a.r -= take;
 }
 export function meleeSwing(target) {
-  const w = WEAPONS[G.wpn];
+  const w = liveStats(G.wpn);
   if (performance.now() - (meleeSwing.t || 0) < 1000 / w.rate) return false;
   meleeSwing.t = performance.now();
   meleeSwing.k = 0; // numéro de combo
@@ -418,7 +440,7 @@ export function updateGrenades(dt, onExplode) {
     if (t.fuse <= 0) {
       FX.explosion(t.m.position.clone(), 5);
       SFX.explode();
-      onExplode(t.m.position.clone(), 5.5, WEAPONS.grenade.dmg * G.dmgBoost, true);
+      onExplode(t.m.position.clone(), 5.5, liveStats('grenade').dmg * G.dmgBoost, true);
       scene.remove(t.m);
       thrown.splice(i, 1);
     }
@@ -439,7 +461,7 @@ export function spreadFactor() {
   let s = w.spread * (1 - Wp.aim * .62);
   if (!G.grounded) s *= 2.2;
   if (G.sprint) s *= 1.9;
-  if (mods.grip) s *= .82;
-  if (mods.scope) s *= .7;
+  if (G.accLv.grip > 0) s *= Math.pow(.88, G.accLv.grip);
+  if (G.accLv.scope > 0) s *= Math.pow(.84, G.accLv.scope);
   return s;
 }

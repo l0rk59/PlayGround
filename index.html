@@ -26,7 +26,9 @@ html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);color:var(
 canvas#gl{display:block;width:100%;height:100%;outline:none}
 
 /* ============ HUD ============ */
-#hud{position:fixed;inset:0;z-index:20;pointer-events:none;opacity:0;transition:opacity .4s}
+/* z-index 24 > #touch (22) : la barre d'armes et les boutons du haut restent
+   tapables. pointer-events:none laisse le reste passer vers les zones tactiles. */
+#hud{position:fixed;inset:0;z-index:24;pointer-events:none;opacity:0;transition:opacity .4s}
 #hud.on{opacity:1}
 .pn{background:var(--panel);border:1px solid var(--line);border-radius:12px;backdrop-filter:blur(6px);
   box-shadow:0 6px 24px rgba(0,0,0,.5),inset 0 0 20px rgba(0,232,255,.05)}
@@ -67,6 +69,10 @@ canvas#gl{display:block;width:100%;height:100%;outline:none}
 #compassStrip span{display:inline-block;width:52px;text-align:center;font-size:12px;font-weight:800;letter-spacing:1px;line-height:24px;color:#cfeaff;opacity:.85}
 #compassStrip span.card{color:var(--yl);font-size:13px}
 #compass::after{content:'';position:absolute;left:50%;top:0;width:2px;height:100%;background:var(--cy);box-shadow:0 0 8px var(--cy);transform:translateX(-50%)}
+#perfBox{position:absolute;right:calc(12px + var(--sar));bottom:calc(176px + var(--sab));padding:4px 10px;border-radius:8px;
+  background:rgba(0,0,0,.6);border:1px solid rgba(0,232,255,.3);font-size:10.5px;font-weight:800;color:var(--cy);
+  display:none;white-space:nowrap;font-variant-numeric:tabular-nums}
+#perfBox.on{display:block}
 /* zone franche / entraînement */
 #safeBadge{position:absolute;left:50%;top:calc(44px + var(--sat));transform:translateX(-50%);padding:4px 16px;border-radius:20px;
   font-size:11px;font-weight:900;letter-spacing:2px;border:1px solid #5dff8f;color:#5dff8f;background:rgba(6,26,16,.72);
@@ -194,8 +200,14 @@ body.training #grade{box-shadow:inset 0 0 0 999px rgba(93,255,143,.05)}
 #touch{position:fixed;inset:0;z-index:22;pointer-events:none;display:none}
 body.touch #touch{display:block}
 .stickZone{position:absolute;pointer-events:auto;touch-action:none}
-#zL{left:0;bottom:0;width:46%;height:64%}
-#zR{right:0;top:0;width:54%;height:64%}
+#zR.looking{background:radial-gradient(ellipse at 70% 50%,rgba(0,232,255,.06),transparent 55%)}
+#touchHint{position:absolute;left:50%;top:52%;transform:translateX(-50%);font-size:12px;color:rgba(220,240,255,.75);
+  pointer-events:none;font-weight:800;letter-spacing:.6px;text-align:center;line-height:1.7;
+  background:rgba(6,10,26,.72);border:1px solid rgba(0,232,255,.35);border-radius:12px;padding:9px 18px;
+  transition:opacity .6s;z-index:2;text-shadow:0 2px 6px #000}
+body.touch #touchHint.hide{opacity:0}
+#zL{left:0;bottom:0;width:44%;height:70%}
+#zR{right:0;top:0;width:50%;height:100%}
 .stick{position:absolute;border-radius:50%;border:2px solid rgba(0,232,255,.4);background:rgba(0,40,60,.16);
   width:118px;height:118px;display:none;pointer-events:none}
 .stick.on{display:block}
@@ -205,14 +217,60 @@ body.touch #touch{display:block}
   font-weight:900;color:#fff;background:rgba(10,20,40,.5);border:2px solid rgba(255,255,255,.28);cursor:pointer;touch-action:none}
 .tbtn .s{font-size:8px;opacity:.75}
 .tbtn:active{transform:scale(.92);background:rgba(0,232,255,.28)}
-#bFire{width:84px;height:84px;background:rgba(255,45,80,.42);border-color:#ff2d50}
 #bAim{width:60px;height:60px;border-color:var(--cy)}
 #bJump{width:58px;height:58px}
 #bReload{width:54px;height:54px}
 #bAct{width:62px;height:62px;border-color:var(--yl);color:var(--yl)}
+#bFire{width:82px;height:82px;background:rgba(255,45,80,.34);border-color:#ff2d50}
 #bBuild{width:54px;height:54px}
 #bHorn{width:52px;height:52px;border-color:var(--gn);color:var(--gn)}
 #bPause{width:42px;height:42px;font-size:16px}
+
+/* ---------- ARSENAL (gunsmith) ---------- */
+#gunsmith .gun-card{max-width:730px}
+.gun-wallet{display:flex;gap:18px;font-size:14px;font-weight:800;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.gun-wallet b{color:var(--yl)}
+.gun-list{max-height:52vh;overflow-y:auto;padding-right:6px}
+.gun-row{display:flex;align-items:center;gap:13px;padding:10px 13px;margin:7px 0;border-radius:12px;
+  background:rgba(0,232,255,.05);border:1px solid rgba(0,232,255,.22);cursor:pointer;transition:.15s}
+.gun-row:hover{border-color:var(--cy);background:rgba(0,232,255,.1)}
+.gun-row.locked{opacity:.75;border-color:rgba(255,45,120,.32);background:rgba(255,45,120,.05)}
+.gun-row.sel{border-color:var(--yl);box-shadow:0 0 16px rgba(255,225,77,.22);background:rgba(255,225,77,.06)}
+.gun-ic{font-size:26px;width:40px;text-align:center;flex-shrink:0}
+.gun-main{flex:1;min-width:0}
+.gun-name{font-size:13px;font-weight:800;letter-spacing:.4px;display:flex;align-items:center;gap:7px}
+.gun-stats{display:flex;gap:13px;font-size:11px;color:#9fc4d8;margin:4px 0;font-weight:700}
+.gun-desc{font-size:11px;color:#9fc4d8;margin:4px 0;line-height:1.5}
+.gun-bar{display:flex;align-items:center;gap:3px;margin-top:6px}
+.gun-bar i{flex:1;max-width:38px;height:5px;border-radius:3px;background:#0d1a28;display:block}
+.gun-bar i.on{background:var(--yl);box-shadow:0 0 6px rgba(255,225,77,.6)}
+.gun-bar span{font-size:9px;color:#9fc4d8;margin-left:7px;font-weight:800;white-space:nowrap}
+.gun-act{flex-shrink:0}
+.gb{padding:9px 13px;border-radius:10px;border:none;font-weight:800;font-size:10px;cursor:pointer;
+  background:var(--yl);color:#1a1000;line-height:1.4;font-family:inherit;min-width:104px;text-align:center}
+.gb b{font-size:12.5px}
+.gb.no{background:#2a2530;color:#7a7080}
+.gb.max{background:#1a2430;color:#4a6478}
+.gun-sub{font-size:10px;letter-spacing:2px;color:var(--cy);font-weight:800;margin:16px 0 4px}
+.gun-tip{margin-top:14px;padding:11px;border-radius:10px;background:rgba(0,232,255,.06);
+  border:1px solid rgba(0,232,255,.2);font-size:11px;color:#a8cddd;line-height:1.65}
+.gun-foot{display:flex;justify-content:space-between;align-items:center;gap:14px;margin-top:14px;flex-wrap:wrap}
+.gun-list::-webkit-scrollbar{width:6px}.gun-list::-webkit-scrollbar-thumb{background:rgba(0,232,255,.5);border-radius:3px}
+
+/* ---------- éditeur de disposition ---------- */
+.lay-stage{position:relative;background:linear-gradient(180deg,#0d1220,#080a14);border:1px solid rgba(0,232,255,.25);
+  border-radius:12px;overflow:hidden;touch-action:none;margin-bottom:12px}
+.lay-ghost{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:42px;color:rgba(255,255,255,.03);font-weight:900;pointer-events:none}
+.lay-btn{position:absolute;display:flex;align-items:center;justify-content:center;border-radius:50%;
+  background:rgba(0,232,255,.3);border:2px solid var(--cy);color:#eaffff;font-weight:800;text-align:center;
+  cursor:grab;touch-action:none;padding:2px;line-height:1.05;overflow:hidden}
+.lay-btn:active{cursor:grabbing;background:rgba(0,232,255,.55)}
+.lay-zone{position:absolute;border:1px dashed rgba(255,225,77,.5);border-radius:12px;background:rgba(255,225,77,.06);
+  display:flex;align-items:flex-start;justify-content:center;padding:4px;font-size:9px;color:var(--yl);
+  font-weight:800;letter-spacing:1px;pointer-events:none}
+.lay-select{padding:8px;border-radius:8px;background:#0a1428;color:#cfeaff;border:1px solid var(--line);margin-bottom:8px;font-family:inherit;width:100%}
+.set select.lay-select{margin:0}
 
 /* ============ SCREENS ============ */
 .screen{position:fixed;inset:0;z-index:40;display:none;align-items:center;justify-content:center;padding:16px;
@@ -332,6 +390,40 @@ body.touch #buildHint{bottom:calc(46px + var(--sab));font-size:10px}
   #botC{bottom:calc(8px + var(--sab))}#ammoTxt{font-size:18px}
 }
 </style>
+<script>
+// --- garde-fou de chargement ---------------------------------------------
+// Si les modules ES n'arrivent pas à se charger ( WebView sans origine HTTPS,
+//  file://, cache corrompu…), on affiche une vraie erreur au lieu de
+//  laisser tourner « CHARGEMENT » indéfiniment.
+window.__ndBoot = { done: false, ms: performance.now(), err: null };
+(function () {
+  const box = document.getElementById('loading');
+  const msg = document.getElementById('loadMsg');
+  function fail(text, detail) {
+    if (window.__ndBoot.done) return;
+    if (!box) return;
+    box.innerHTML =
+      '<div class="bootfail"><h2>⚠ CHARGEMENT IMPOSSIBLE</h2><p>' + text + '</p>' +
+      (detail ? '<pre>' + String(detail).slice(0, 300) + '</pre>' : '') +
+      '<button onclick="location.reload()">Réessayer</button></div>';
+  }
+  window.__ndBootFail = fail;
+  window.addEventListener('error', e => {
+    if (window.__ndBoot.done) return;
+    if (e.target && e.target.tagName === 'SCRIPT') fail('Un fichier du jeu n\'a pas pu être chargé.', e.target.src);
+    else fail('Erreur pendant le démarrage.', e.message);
+  }, true);
+  window.addEventListener('unhandledrejection', e => {
+    if (window.__ndBoot.done) return;
+    fail('Chargement interrompu.', e.reason && (e.reason.message || e.reason));
+  });
+  setTimeout(() => {
+    if (!window.__ndBoot.done) {
+      fail('Le jeu met trop de temps à démarrer. Vérifie que le dossier <b>vendor/three</b> est présent.');
+    }
+  }, 20000);
+})();
+</script>
 <script type="importmap">{"imports":{"three":"./vendor/three/three.module.js","three/addons/":"./vendor/three/"}}</script>
 </head>
 <body>
@@ -344,16 +436,17 @@ body.touch #buildHint{bottom:calc(46px + var(--sab));font-size:10px}
     <div class="vrow"><span class="lbl">END</span><div class="bar slim"><i id="stFill"></i></div></div>
     <div class="lvl"><b id="lvlTxt">NIV. 1</b><span class="lbl" id="xpTxt">0 XP</span></div>
     <div class="bar slim"><i id="xpFill"></i></div>
-    <div id="statRow"><span>⚙️ <i id="sScrap">0</i></span><span>💊 <i id="sMed">0</i></span><span>⛽ <i id="sFuel">0</i></span></div>
+    <div id="statRow"><span>💴 <i id="sYen">0</i></span><span>⚙️ <i id="sScrap">0</i></span><span>💊 <i id="sMed">0</i></span><span>⛽ <i id="sFuel">0</i></span></div>
   </div>
 
   <div id="compass"><div id="compassStrip"></div></div>
   <div id="safeBadge"><span id="safeName">ZONE FRANCHE</span></div>
+  <div id="perfBox"></div>
 
   <div id="topRight">
     <div id="timePanel" class="pn"><div id="dayTxt">☀ JOUR 1</div><div id="clockBar"><div id="clockFill"></div></div></div>
     <div id="wavePanel" class="pn">⚠ VAGUE 1</div>
-    <div class="iconRow"><button class="ibtn" id="btnQuests" title="Quêtes (J)">◈</button><button class="ibtn" id="btnSettings" title="Réglages">⚙</button><button class="ibtn" id="btnPause" title="Pause (Échap)">II</button></div>
+    <div class="iconRow"><button class="ibtn" id="btnGun" title="Arsenal (V)">🔫</button><button class="ibtn" id="btnQuests" title="Quêtes (J)">◈</button><button class="ibtn" id="btnSettings" title="Réglages">⚙</button><button class="ibtn" id="btnPause" title="Pause (Échap)">II</button></div>
   </div>
 
   <div id="questTrack" class="pn"></div>
@@ -382,14 +475,15 @@ body.touch #buildHint{bottom:calc(46px + var(--sab));font-size:10px}
 <div id="touch">
   <div class="stickZone" id="zL"><div class="stick" id="stickL"><i></i></div></div>
   <div class="stickZone" id="zR"><div class="stick" id="stickR"><i></i></div></div>
-  <div class="tbtn" id="bFire"><span>FEU</span></div>
   <div class="tbtn" id="bAim"><span>VISER</span></div>
   <div class="tbtn" id="bJump"><span>SAUT</span><span class="s">⤒</span></div>
   <div class="tbtn" id="bReload"><span>R</span></div>
+  <div class="tbtn" id="bFire"><span>FEU</span></div>
   <div class="tbtn" id="bAct"><span>E</span></div>
   <div class="tbtn" id="bBuild"><span>🛠</span></div>
   <div class="tbtn" id="bHorn"><span>📯</span></div>
   <div class="tbtn" id="bPause"><span>II</span></div>
+  <div id="touchHint">Glisse pour regarder · Tape pour tirer</div>
 </div>
 
 <!-- ================= SCREENS ================= -->
@@ -432,6 +526,10 @@ body.touch #buildHint{bottom:calc(46px + var(--sab));font-size:10px}
   <div class="set"><label>Secousses d'écran</label><div class="seg" id="sShake"><button data-k="0">Off</button><button data-k="1">On</button></div></div>
   <div class="set"><label>Inverser l'axe Y</label><div class="seg" id="sInv"><button data-i="0">Non</button><button data-i="1">Oui</button></div></div>
   <div class="set"><label>Compas / mini-carte</label><div class="seg" id="sUi"><button data-u="0">Cache</button><button data-u="1">Affiche</button></div></div>
+  <div class="set"><label>Vibration (retours haptiques)</label><div class="seg" id="sHaptic"><button data-v="0">Off</button><button data-v="1">On</button></div></div>
+  <div class="set"><label>Limites d'images</label><input type="range" id="sFps" min="30" max="120" value="60"><span class="v" id="vFps">60</span></div>
+  <h3 style="color:var(--yl);font-size:12px;letter-spacing:1.5px;margin:16px 0 6px">📱 DISPOSITION DES TOUCHES</h3>
+  <div id="layoutHost"></div>
   <button class="btn" id="btnSetBack">◀ Retour</button>
 </div></div>
 
@@ -471,6 +569,15 @@ body.touch #buildHint{bottom:calc(46px + var(--sab));font-size:10px}
 
 <div id="loading"><div class="l1">NEON DEAD</div><div class="l2" id="loadMsg">CHARGEMENT DE NEO-KYOTO…</div><div class="bar"><i></i></div></div>
 
-<script type="module" src="./src/main.js"></script>
+<script type="module">
+  // si l'import principal échoue, l'erreur est déjà remontée par le garde-fou
+  import('./src/main.js').then(() => {
+    window.__ndBoot.done = true;
+    const l = document.getElementById('loading');
+    if (l) l.style.display = 'none';
+  }).catch(err => {
+    window.__ndBootFail && window.__ndBootFail('Le module principal n\'a pas pu être chargé.', err && (err.stack || err.message));
+  });
+</script>
 </body>
 </html>

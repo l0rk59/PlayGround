@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <!-- crâne -->
+    <path android:fillColor="#1A2430" android:pathData="M54,26 C66,26 74,36 74,48 C74,56 71,60 69,63 L69,70 L39,70 L39,63 C37,60 34,56 34,48 C34,36 42,26 54,26 Z"/>
+    <path android:strokeColor="#00E8FF" android:strokeWidth="2.4" android:fillColor="#00000000"
+        android:pathData="M54,26 C66,26 74,36 74,48 C74,56 71,60 69,63 L69,70 L39,70 L39,63 C37,60 34,56 34,48 C34,36 42,26 54,26 Z"/>
+    <!-- yeux -->
+    <path android:fillColor="#FF2D50" android:pathData="M43,48 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/>
+    <path android:fillColor="#FF2D50" android:pathData="M65,48 m-5,0 a5,5 0 1,0 10,0 a5,5 0 1,0 -10,0"/>
+    <!-- mâchoire + dents -->
+    <path android:fillColor="#2A3A48" android:pathData="M44,70 L64,70 L64,76 L44,76 Z"/>
+    <path android:fillColor="#C8E6F5" android:pathData="M47,70 L49,70 L49,75 L47,75 Z M52,70 L54,70 L54,75 L52,75 Z M57,70 L59,70 L59,75 L57,75 Z"/>
+</vector>

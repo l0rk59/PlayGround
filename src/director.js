@@ -54,6 +54,9 @@ export function buildPOIs() {
     { id: 'poi_lab', name: 'LABORATOIRE NÉON-X', x: 120, z: -100, radius: 16, kind: 'lab', color: 0x5dff8f },
     { id: 'poi_market', name: 'MARCHÉ NOIR', x: W.MARKET.x, z: W.MARKET.z, radius: 12, kind: 'market', color: 0xff2d78 },
     { id: 'poi_camp', name: 'BASE NÉON', x: W.CAMP.x, z: W.CAMP.z, radius: 16, kind: 'camp', color: 0x5dff8f },
+    { id: 'poi_subway', name: 'MÉTRO 12', x: 128, z: 96, radius: 15, kind: 'tunnel', color: 0xff7a3d },
+    { id: 'poi_silo', name: 'SILO NUCLÉAIRE', x: -186, z: -132, radius: 18, kind: 'lab', color: 0x9d6bff },
+    { id: 'poi_fort', name: 'FORT ABANDONNÉ', x: 208, z: 178, radius: 16, kind: 'hospital', color: 0x5dff8f },
   ];
   for (const d of defs) {
     POIs.push({ ...d, found: false, fog: new THREE.Mesh(

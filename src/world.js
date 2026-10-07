@@ -2,7 +2,7 @@
 //  world.js — génération du monde : ciel, ville en ruines, forêt, POI, météo
 // ============================================================================
 import * as THREE from 'three';
-import { G, WORLD, makeRng, clamp, lerp, TAU, V3, isNight, rand, randi } from './state.js';
+import { G, WORLD, makeRng, clamp, lerp, TAU, V3, isNight, rand, randi, loadStep } from './state.js';
 import { asphalt, concrete, metal, ground, facade, neonSign, halo } from './textures.js';
 import { S } from './state.js';
 
@@ -159,8 +159,12 @@ function buildGround() {
   const roads = [
     { x: 0, z: 0, w: 22, l: WORLD.R * 2, m: roadMat },
     { x: 0, z: 0, w: WORLD.R * 2, l: 22, m: roadMat2, rot: true },
-    { x: -105, z: 30, w: 14, l: 300, m: roadMat, rot: false, ox: 0, oz: 40 },
-    { x: 100, z: 40, w: 14, l: 280, m: roadMat, rot: false },
+    { x: -160, z: 0, w: 15, l: WORLD.R * 1.7, m: roadMat2, rot: false },
+    { x: 160, z: 0, w: 15, l: WORLD.R * 1.7, m: roadMat2, rot: false },
+    { x: 0, z: -170, w: 15, l: WORLD.R * 1.7, m: roadMat, rot: true },
+    { x: 0, z: 170, w: 15, l: WORLD.R * 1.7, m: roadMat, rot: true },
+    { x: -110, z: 90, w: 13, l: 260, m: roadMat2, rot: false },
+    { x: 120, z: -110, w: 13, l: 240, m: roadMat, rot: false },
   ];
   for (const rd of roads) {
     const g = new THREE.PlaneGeometry(rd.rot ? rd.l : rd.w, rd.rot ? rd.w : rd.l);
@@ -170,7 +174,7 @@ function buildGround() {
   }
   // lignes centrales lumineuses
   const lineMat = new THREE.MeshBasicMaterial({ color: 0xffe9a8, transparent: true, opacity: .55 });
-  for (let i = -190; i <= 190; i += 11) {
+  for (let i = -320; i <= 320; i += 11) {
     for (const along of [true, false]) {
       const s = new THREE.Mesh(new THREE.PlaneGeometry(along ? .35 : 3.2, along ? 3.2 : .35), lineMat);
       s.rotation.x = -Math.PI / 2; s.position.set(along ? 0 : i, .05, along ? i : 0); W.scene.add(s);
@@ -381,11 +385,11 @@ const rustMat = new THREE.MeshStandardMaterial({ color: 0x4a4038, roughness: .95
 function buildCity() {
   const plots = [];
   // grille de îlots autour des routes principales
-  for (let gx = -4; gx <= 4; gx++) for (let gz = -4; gz <= 4; gz++) {
+  for (let gx = -6; gx <= 6; gx++) for (let gz = -6; gz <= 6; gz++) {
     if (gx === 0 || gz === 0) continue; // laisse les avenues
     if (Math.abs(gx) < 2 && Math.abs(gz) < 2) continue;
-    const bx = gx * 44 + r(-6, 6), bz = gz * 44 + r(-6, 6);
-    plots.push({ x: bx, z: bz, w: r(11, 22), d: r(11, 22), h: r(9, 46) });
+    const bx = gx * 48 + r(-7, 7), bz = gz * 48 + r(-7, 7);
+    plots.push({ x: bx, z: bz, w: r(12, 26), d: r(12, 26), h: r(9, 52) });
   }
   let built = 0;
   for (const p of plots) {
@@ -522,7 +526,7 @@ function buildStreetProps() {
 /* ---------------- lampadaires & poteaux ---------------- */
 function streetFurniture() {
   const poleMat = new THREE.MeshStandardMaterial({ color: 0x2a2f3a, roughness: .7, metalness: .5, map: metal() });
-  for (let i = -170; i <= 170; i += 34) {
+  for (let i = -300; i <= 300; i += 34) {
     for (const [lx, lz, rot] of [[14, i, 0], [-14, i, 0], [i, 14, Math.PI / 2], [i, -14, Math.PI / 2]]) {
       if (Math.abs(lx) > 8 && Math.abs(lz) > 8) continue;
       const pole = new THREE.Mesh(new THREE.CylinderGeometry(.16, .24, 8, 6), poleMat);
@@ -869,7 +873,88 @@ function buildPOI() {
     // points d'apparition de vagues
     W.enemiesSpawn.push({ x: d.x, z: d.z, used: 0 });
   }
-  W.enemiesSpawn.push({ x: 0, z: -150, used: 0 }, { x: -150, z: 0, used: 0 }, { x: 150, z: 0, used: 0 }, { x: 0, z: 150, used: 0 });
+  for (let i = 0; i < 10; i++) {
+    const a = i / 10 * TAU;
+    W.enemiesSpawn.push({ x: Math.cos(a) * 250, z: Math.sin(a) * 250, used: 0 });
+  }
+
+  // --- POIkartiers supplémentaires (structures bâties) ---
+  const extra = [
+    { name: 'METRO 12', x: 128, z: 96, color: 0xff7a3d },
+    { name: 'SILO NUCLEAIRE', x: -186, z: -132, color: 0x9d6bff },
+    { name: 'FORT ABANDONNE', x: 208, z: 178, color: 0x5dff8f },
+  ];
+  for (const e of extra) {
+    const g = new THREE.Group();
+    const rimM = new THREE.MeshStandardMaterial({ color: 0x3a3f48, map: concrete('#454b58'), roughness: .9 });
+    if (e.name === 'METRO 12') {
+      const hole = new THREE.Mesh(new THREE.BoxGeometry(15, 1, 10), new THREE.MeshBasicMaterial({ color: 0x04050a }));
+      hole.position.y = .1; g.add(hole);
+      for (let i = 0; i < 5; i++) {
+        const st = new THREE.Mesh(new THREE.BoxGeometry(13, 1, 1), rimM);
+        st.position.set(0, -.5 - i * .6, 4.5 + i * .85); st.rotation.x = -.5; g.add(st);
+      }
+      const canopy = new THREE.Mesh(new THREE.BoxGeometry(18, .45, 8), rimM);
+      canopy.position.set(0, 4.4, 5.5); g.add(canopy);
+      for (const ox of [-7.5, 7.5]) {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(.32, .38, 4.4, 8), rimM);
+        col.position.set(ox, 2.2, 5.5); g.add(col);
+      }
+      const sign = new THREE.Mesh(new THREE.PlaneGeometry(9, 2.2), new THREE.MeshBasicMaterial({ map: neonSign('METRO 12', '#ff7a3d'), transparent: true, side: THREE.DoubleSide, toneMapped: false }));
+      sign.position.set(0, 6.4, 5.6); g.add(sign);
+      pointLight(0xff7a3d, e.x, 4, e.z + 6, 48, 1);
+    } else if (e.name === 'SILO NUCLEAIRE') {
+      const silM = new THREE.MeshStandardMaterial({ color: 0x585c66, map: metal(), roughness: .75, metalness: .5 });
+      for (let i = 0; i < 4; i++) {
+        const a = i / 4 * TAU + .5;
+        const rad = 12 + (i % 2) * 7;
+        const sil = new THREE.Mesh(new THREE.CylinderGeometry(7, 7.6, 26 + (i % 2) * 8, 14), silM);
+        sil.position.set(Math.cos(a) * rad, 13 + (i % 2) * 4, Math.sin(a) * rad);
+        sil.castShadow = !!S.shadow; g.add(sil);
+        addCollider(e.x + Math.cos(a) * rad, e.z + Math.sin(a) * rad, 7.6, 7.6, 26, 'silo');
+        const band = new THREE.Mesh(new THREE.TorusGeometry(7.5, .22, 6, 18), new THREE.MeshBasicMaterial({ color: 0x9d6bff, toneMapped: false }));
+        band.rotation.x = Math.PI / 2; band.position.set(sil.position.x, sil.position.y + 7, sil.position.z); g.add(band);
+      }
+      const tower = new THREE.Mesh(new THREE.CylinderGeometry(6, 10.5, 44, 16, 1, true),
+        new THREE.MeshStandardMaterial({ color: 0x6a6e78, map: concrete('#555b66'), roughness: .95, side: THREE.DoubleSide }));
+      tower.position.set(0, 22, 0); g.add(tower);
+      const cap = new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 1.4, 16), new THREE.MeshBasicMaterial({ color: 0x9d6bff, toneMapped: false }));
+      cap.position.set(0, 43, 0); g.add(cap);
+      addCollider(e.x, e.z, 10.5, 10.5, 44, 'tower');
+      neonGlow(0x9d6bff, e.x, 44, e.z, 18, .5);
+      pointLight(0x9d6bff, e.x, 22, e.z, 100, 1.6);
+      const sign2 = new THREE.Mesh(new THREE.PlaneGeometry(20, 4.4), new THREE.MeshBasicMaterial({ map: neonSign('SILO NUCLEAIRE', '#9d6bff'), transparent: true, side: THREE.DoubleSide, toneMapped: false }));
+      sign2.position.set(0, 50, 0); g.add(sign2);
+    } else {
+      const fortM = new THREE.MeshStandardMaterial({ color: 0x4a5040, map: concrete('#4d5346'), roughness: .95 });
+      for (let i = 0; i < 4; i++) {
+        const a = i / 4 * TAU;
+        const w = new THREE.Mesh(new THREE.BoxGeometry(26, 5, 2.2), fortM);
+        w.position.set(Math.cos(a) * 16, 2.5, Math.sin(a) * 16);
+        w.rotation.y = -a + Math.PI / 2; w.castShadow = !!S.shadow; g.add(w);
+        addCollider(e.x + Math.cos(a) * 16, e.z + Math.sin(a) * 16, 13, 1.2, 5, 'wall');
+      }
+      const bhs = new THREE.Mesh(new THREE.BoxGeometry(12, 4.2, 10), fortM);
+      bhs.position.set(0, 2.1, 0); bhs.castShadow = !!S.shadow; g.add(bhs);
+      addCollider(e.x, e.z, 6, 5, 4.2, 'bunker');
+      const mast = new THREE.Mesh(new THREE.CylinderGeometry(.16, .22, 17, 6), new THREE.MeshStandardMaterial({ color: 0x4a4a52, metalness: .6, roughness: .5 }));
+      mast.position.set(0, 12.5, 0); g.add(mast);
+      for (let i = 0; i < 3; i++) {
+        const arm = new THREE.Mesh(new THREE.BoxGeometry(6, .12, .12), new THREE.MeshBasicMaterial({ color: 0x5dff8f, toneMapped: false }));
+        arm.position.set(0, 10 + i * 2.2, 0); arm.rotation.y = i * 1.1; g.add(arm);
+      }
+      const sp = new THREE.SpotLight(0x5dff8f, 0, 140, .42, .5, 1.4);
+      sp.position.set(0, 21, 0); sp.target.position.set(0, 0, 0);
+      g.add(sp); g.add(sp.target);
+      W.lights.push(sp); sp.userData.base = 3.5;
+      neonGlow(0x5dff8f, e.x, 21, e.z, 13, .45);
+      pointLight(0x5dff8f, e.x, 8, e.z, 80, 1.2);
+      const sign3 = new THREE.Mesh(new THREE.PlaneGeometry(17, 3.6), new THREE.MeshBasicMaterial({ map: neonSign('FORT ABANDONNE', '#5dff8f'), transparent: true, side: THREE.DoubleSide, toneMapped: false }));
+      sign3.position.set(0, 9, 17); g.add(sign3);
+    }
+    g.position.set(e.x, 0, e.z);
+    W.root.add(g);
+  }
 }
 
 /* ---------------- forêt ---------------- */
@@ -1062,20 +1147,30 @@ export function updateWorld(dt) {
 
 export function buildWorld(scene, camera) {
   W.scene = scene; W.camera = camera;
+  loadStep('GÉNÉRATION DE LA CITÉ', .05);
   scene.userData.cx = 0; scene.userData.cz = 0;
   W.root = new THREE.Group(); scene.add(W.root);
   buildSky();
+  loadStep('CONSTRUCTION DU SOL', .12);
   buildGround();
+  loadStep('ZONES FRANCHES', .18);
   for (const z of SAFE_ZONES) buildSafeZoneVisual(z);
+  loadStep('IMMEUBLES', .24);
   buildCity();
+  loadStep('BASE NÉON', .55);
   buildCamp();
+  loadStep('MARCHÉ NOIR', .62);
   buildMarket();
   buildFactions();
+  loadStep('POINTS D INTERET', .68);
   buildPOI();
+  loadStep('FORÊT', .76);
   buildForest();
   buildRain();
+  loadStep('MOBILIER URBAIN', .82);
   streetFurniture();
   buildStreetProps();
+  loadStep('MONDE PRÊT', 1);
   return W;
 }
 

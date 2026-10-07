@@ -8,7 +8,7 @@ import {
 } from './state.js';
 import { buildWorld, updateWorld, W, collide, blocked, inSafeZone, nearestSafeZone } from './world.js';
 import { initPlayer, updatePlayer, camera, playerTakeDamage, heal, respawn, setDeathHandler, PL } from './player.js';
-import { initWeapons, updateWeapon, fireWeapon, reload, finishReload, selectWeapon, nextWeapon, refreshWeaponModel, Wp, WEAPONS, updateGrenades, meleeSwing, setLook } from './weapons.js';
+import { initWeapons, updateWeapon, fireWeapon, reload, finishReload, selectWeapon, nextWeapon, refreshWeaponModel, applyMagSize, liveStats, Wp, WEAPONS, updateGrenades, meleeSwing } from './weapons.js';
 import { initEnemies, updateEnemies, setPlayerHitHandler, updateAcids, explosionDamage, spawnEnemy, setUI, hitEnemy, E } from './enemies.js';
 import { initVehicles, buildFleet, updateVehicle, nearestVehicle, enterVehicle, refuel, vehicleHorn, V } from './vehicles.js';
 import { initSurvivors, buildSurvivors, updateSurvivors, nearestSurvivor, recruit, ROSTER, noteNear, collectNote, updateNotes, buildNotes, setNoteScene, factionAt } from './survivors.js';
@@ -16,11 +16,14 @@ import { initBuilding, updateBuilding, placePart, showGhost, ghostPos, setGhostO
 import { initLoot, buildLoot, lootNear, openCrate, updateDrops } from './loot.js';
 import { initDirector, updateDirector, updateWave, poiNear, discoverPOI, factionCommand, buildPOIs, statsBlock, resetForRespawn } from './director.js';
 import { initAudio, resumeAudio, setVolume, SFX, engineOff, tension } from './audio.js';
-import { initInput, inputEnabled, requestLock, exitLock, pollInput, onUnlock, onLock, IN } from './input.js';
+import { initInput, inputEnabled, requestLock, exitLock, pollInput, onUnlock, onLock, releaseAll, IN } from './input.js';
 import { LOOT, DROPS } from './loot.js';
 import { NPCS } from './survivors.js';
 import { mods } from './state.js';
 import * as HUD from './hud.js';
+import { loadStep } from './state.js';
+import { initGunsmith, show as showGunsmith, close as closeGunsmith, isOpen as gunsmithOpen } from './gunsmith.js';
+import { applyLayout, buildEditor } from './layout.js';
 import * as FX from './fx.js';
 
 /* ============================ moteur ============================ */
@@ -58,11 +61,14 @@ if (S.shadow) { sun.shadow.mapSize.set(1024, 1024); sun.shadow.camera.near = 1; 
 scene.add(sun);
 W.sunRef = sun;
 const rim = new THREE.DirectionalLight(0x3a5aff, .5); rim.position.set(60, 40, -60); scene.add(rim);
+// contre-jour vert-cyan : détache les silhouettes du décor la nuit
+const backLight = new THREE.DirectionalLight(0x66ffcc, .35);
+backLight.position.set(-40, 25, 70); scene.add(backLight);
 
 buildWorld(scene, cam);
 initPlayer(cam);
 // seconde caméra (near très court) pour le modèle d'arme : jamais rogné par le décor
-const wcam = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, .01, 12);
+const wcam = new THREE.PerspectiveCamera(S.fov * .82, innerWidth / innerHeight, .01, 12);
 wcam.rotation.order = 'YXZ';
 scene.add(wcam);            // sinon ses enfants (l'arme) ne sont jamais rendus
 initWeapons(cam, scene, wcam);
@@ -100,17 +106,24 @@ async function initPost() {
 
 addEventListener('resize', () => {
   cam.aspect = innerWidth / innerHeight; cam.updateProjectionMatrix();
-  wcam.aspect = innerWidth / innerHeight; wcam.updateProjectionMatrix();
+  // la caméra d'arme suit le FOV du jeu : l'arme garde une taille relative correcte
+  wcam.aspect = innerWidth / innerHeight; wcam.fov = Math.max(30, Math.min(85, S.fov * .82)); wcam.updateProjectionMatrix();
   renderer.setSize(innerWidth, innerHeight);
   if (composer) composer.setSize(innerWidth, innerHeight);
 });
 
 /* ============================ contenu ============================ */
-buildFleet();
+loadStep('ESCOUADE', .9);
 buildSurvivors();
 buildNotes();
+loadStep('VEHICULES', .93);
+initGunsmith();
+buildFleet();
+loadStep('POINTS INTERET', .96);
 buildPOIs();
+loadStep('BUTIN', .98);
 buildLoot();
+loadStep('TERMINÉ', 1);
 
 // capacité des chargeurs
 for (const w of Object.values(WEAPONS)) {
@@ -129,6 +142,7 @@ setUI({
 
 /* ============================ input principal ============================ */
 initInput(renderer.domElement);
+applyLayout();
 setPlayerHitHandler(playerTakeDamage);
 HUD.initHUD(cam, { pickWeapon: k => trySelect(k) });
 HUD.initShopTabs();
@@ -143,10 +157,13 @@ document.getElementById('btnHelp').onclick = () => document.getElementById('help
 document.getElementById('btnSet0').onclick = () => openSettings('title');
 document.getElementById('btnDel').onclick = () => { if (confirm('Effacer la sauvegarde ?')) { clearSave(); location.reload(); } };
 document.getElementById('btnResume').onclick = () => togglePause(false);
+// le FOV s'applique immédiatement aux deux caméras
+function syncFov() { wcam.fov = Math.max(30, Math.min(85, S.fov * .82)); wcam.updateProjectionMatrix(); cam.updateProjectionMatrix(); }
+addEventListener('nd:fov', syncFov);
 document.getElementById('btnSet1').onclick = () => openSettings('pause');
 document.getElementById('btnSaveNow').onclick = () => { doSave(); HUD.toast('💾 Partie sauvegardée', 'good'); };
 document.getElementById('btnQuit').onclick = () => { doSave(); location.reload(); };
-document.getElementById('btnRetry').onclick = () => { G.scrap = Math.floor(G.scrap / 2); resetForRespawn(); inputEnabled(true); lockPointer(); };
+document.getElementById('btnRetry').onclick = () => { G.scrap = Math.floor(G.scrap / 2); resetForRespawn(); inputEnabled(true); requestLock(); };
 document.getElementById('btnMenu').onclick = () => location.reload();
 document.getElementById('btnShopClose').onclick = () => { HUD.closeShop(); };
 document.getElementById('btnQuestClose').onclick = () => HUD.closeQuests();
@@ -154,6 +171,7 @@ document.getElementById('btnNoteClose').onclick = () => { document.getElementByI
 document.getElementById('btnSettings').onclick = () => openSettings('hud');
 document.getElementById('btnPause').onclick = () => togglePause();
 document.getElementById('btnQuests').onclick = () => { HUD.openQuests(); exitLock(); };
+document.getElementById('btnGun').onclick = () => { showGunsmith(); exitLock(); };
 document.getElementById('btnSetBack').onclick = () => closeSettings();
 
 /* ============================ états de jeu ============================ */
@@ -181,6 +199,11 @@ function startGame(cont) {
   refreshWeaponModel();
   HUD.refreshQuick(); HUD.refreshWeaponBar();
   HUD.toast('⚠️ Pille la ville, fortifie ton camp, recrute des survivants.', 'info');
+  // l'astuce tactile s'efface d'elle-même après 6 s
+  if (IN.touch) {
+    const h = document.getElementById('touchHint');
+    if (h) setTimeout(() => h.classList.add('hide'), 6000);
+  }
   if (!IN.touch) setTimeout(() => HUD.toast('🖱 Clique pour verrouiller la souris · B construire · E interagir', 'info'), 3600);
   // quelques ennemis de départ
   spawnEnemy('walker', G.px + rand(38, 60), G.pz + rand(-25, 25), {});
@@ -190,12 +213,13 @@ function startGame(cont) {
 function togglePause(force) {
   if (!G.playing || G.dead) return;
   G.paused = force === undefined ? !G.paused : force;
-  if (G.paused) { HUD.openPause(statsBlock()); unlockPointer(); clearKeys(); engineOff(); }
+  if (G.paused) { HUD.openPause(statsBlock()); exitLock(); releaseAll(); engineOff(); }
   else { HUD.closePause(); inputEnabled(true); requestLock(); }
 }
 function openSettings(from) {
   HUD.initSettingsHooks();
   document.getElementById('settingsScreen').classList.add('on');
+  buildEditor(document.getElementById('layoutHost'), () => HUD.refreshQuick());
   exitLock();
 }
 function closeSettings() {
@@ -232,9 +256,19 @@ function toggleBuildMode() {
   if (buildMode) HUD.toast('🛠 Choisis une pièce, vise et tire pour poser (près du camp)', 'info');
 }
 function trySelect(k) {
-  if (k === 'grenade' && G.grenades <= 0) { SFX.deny(); HUD.toast('Plus de grenades !', 'bad'); return; }
-  if (!selectWeapon(k)) { SFX.deny(); HUD.toast('Arme verrouillée — achète-la au Fixer.', 'bad'); }
-  else { refreshWeaponModel(); HUD.refreshWeaponBar(); buildMode = false; showGhost(false); HUD.buildBar(false); }
+  const locked = k !== 'grenade' && !WEAPONS[k].melee && G.unlocked[k] !== 1;
+  if (k === 'grenade' && G.grenades <= 0) { SFX.deny(); HUD.toast('💣 Plus de grenades — achète-les à l\'Arsenal (V).', 'bad'); return; }
+  if (locked) {
+    // au lieu d'un simple refus, on ouvre directement la boutique de l'arme
+    SFX.deny();
+    HUD.toast(`🔒 ${WEAPONS[k].name} — à acheter à l'Arsenal`, 'info');
+    showGunsmith(k); exitLock();
+    return;
+  }
+  if (!selectWeapon(k)) { SFX.deny(); return; }
+  applyMagSize(k);
+  refreshWeaponModel(); HUD.refreshWeaponBar();
+  buildMode = false; showGhost(false); HUD.buildBar(false);
 }
 
 /* ============================ interactions ============================ */
@@ -242,6 +276,12 @@ function handleInteractions(edges) {
   const pos = V3(G.px, 0, G.pz);
   if (edges.pause) { togglePause(); return; }
   if (edges.training) { toggleTraining(); return; }
+  if (edges.gunsmith) {
+    if (gunsmithOpen()) { closeGunsmith(); requestLock(); }
+    else { showGunsmith(); exitLock(); }
+    return;
+  }
+  if (edges.fps) { window.dispatchEvent(new Event('nd:fps')); }
   if (edges.map) { HUD.toast(G.miniMapBig ? '🗺' : '🗺', 'info'); G.miniMapBig = !G.miniMapBig; document.body.classList.toggle('bigmap', !!G.miniMapBig); }
   // arme slot direct / molette
   if (edges.wheel) { cycleWeapon(edges.wheel > 0 ? 1 : -1); }
@@ -261,10 +301,12 @@ function handleInteractions(edges) {
 const ORDER_LIST = ['machete', 'knife', 'pistol', 'rifle', 'shotgun', 'dmr', 'grenade'];
 
 function doInteract(pos) {
+  // arsenal
+  if (gunsmithOpen()) { closeGunsmith(); requestLock(); return; }
   // boutique
   if (HUD.shopOpen()) { HUD.closeShop(); requestLock(); return; }
   // marché noir
-  if (Math.hypot(pos.x - W.MARKET.x, pos.z - W.MARKET.z) < 5) { HUD.openShop(); exitLock(); SFX.click(); return; }
+  if (Math.hypot(pos.x - W.MARKET.x, pos.z - W.MARKET.z) < 5) { showGunsmith(); exitLock(); SFX.click(); return; }
   // faction
   const fac = factionAt(pos);
   if (fac) { factionCommand(fac); return; }
@@ -305,8 +347,14 @@ function updateVehicleHUD(v) {
 /* ============================ boucle principale ============================ */
 const clock = new THREE.Clock();
 let acc = 0;
+let frameLimit = 1000 / Math.max(20, S.maxFps || 60);
+let sinceLast = 0;
 function loop() {
   requestAnimationFrame(loop);
+  // limiteur d'images configurable (batterie)
+  const now = performance.now();
+  if (now - sinceLast < frameLimit - 1) return;
+  sinceLast = now - ((now - sinceLast) % frameLimit);
   if (!G.playing) { render(); return; }
   if (G.paused || G.dead) { render(); return; }
   const dt = Math.min(clock.getDelta(), .05);
@@ -323,8 +371,13 @@ function loop() {
     if (buildMode) { if (IN.fire) tryPlaceAt(); }
     else {
       const w = WEAPONS[G.wpn];
-      const wantFire = w.auto || w.melee ? IN.fire : edges.firePressed;
-      if (wantFire) { const target = E.filter(e => e.die <= 0); fireWeapon(target); }
+      const target = E.filter(e => e.die <= 0);
+      // « tap » tactile : exactement un tir, quelle que soit la cadence
+      if (edges.tapFire) { if (fireWeapon(target)) haptic(9); }
+      else {
+        const wantFire = w.auto || w.melee ? IN.fire : edges.firePressed;
+        if (wantFire) { const fired = fireWeapon(target); if (fired) haptic(9); }
+      }
     }
   }
 
@@ -366,10 +419,11 @@ function loop() {
   safe('hud', () => HUD.updateHUD(dt));
   updateSafeBadge();
   HUD.refreshQuick();
-  if (G.frame % 20 === 0) { HUD.refreshWeaponBar(); HUD.renderQuests(); }
+  if (G.frame % 30 === 0) { HUD.renderQuests(); }
 
   // effets
   safe('fx', () => FX.updateFx(dt));
+  trackFps(dt);
   // secousse caméra appliquée
   shakeState = FX.shakeOffset(shakeState);
   // mort
@@ -388,8 +442,10 @@ function updateSafeBadge() {
   HUD.safeZone(z);
 }
 
+let lastTri = 0, lastCalls = 0;
 function render() {
-  if (composer) { composer.render(); return; }
+  renderer.info.reset();
+  if (composer) { composer.render(); lastTri = renderer.info.render.triangles; lastCalls = renderer.info.render.calls; return; }
   renderer.autoClear = true;
   renderer.render(scene, cam);
   // l'arme est rendue par-dessus, sans être occultée par le décor
@@ -397,6 +453,7 @@ function render() {
   renderer.clearDepth();
   renderer.render(scene, wcam);
   renderer.autoClear = true;
+  lastTri = renderer.info.render.triangles; lastCalls = renderer.info.render.calls;
 }
 
 /* ============================ construction placement ============================ */
@@ -411,7 +468,7 @@ function autoInteractHints() {
   promptT -= G.dt; if (promptT > 0) return; promptT = .12;
   const pos = V3(G.px, 0, G.pz);
   if (G.inVeh) { HUD.prompt('E', 'Sortir · F klaxon · ⛽ '+Math.round(G.inVeh.fuel)+'%'); return; }
-  if (HUD.shopOpen() || HUD.anyOverlay()) { HUD.prompt('', ''); return; }
+  if (HUD.shopOpen() || HUD.anyOverlay() || gunsmithOpen()) { HUD.prompt('', ''); return; }
   if (Math.hypot(pos.x - W.MARKET.x, pos.z - W.MARKET.z) < 5) { HUD.prompt('E', 'Marché noir'); return; }
   const fac = factionAt(pos);
   if (fac) { HUD.prompt('E', (fac === 'enclave' ? 'Enclave 7' : 'Gang Rouille') + ` — échange (rép ${G.rep[fac]}/3)`); return; }
@@ -452,12 +509,74 @@ if (hasSave()) {
 }
 
 document.getElementById('loading').style.display = 'none';
+window.__ndBoot.done = true;
 render();
+
+/* ---------- FPS / stats de performance ---------- */
+let fpsAcc = 0, fpsN = 0, fpsT = 0, showFps = false;
+function trackFps(dt) {
+  fpsAcc += dt; fpsN++;
+  if (fpsAcc >= .5) {
+    fpsT = Math.round(fpsN / fpsAcc); fpsAcc = 0; fpsN = 0;
+    if (showFps) HUD.perf(fpsT, lastTri, lastCalls, E.length);
+  }
+}
+let N_TRI = () => 0;
+addEventListener('nd:fps', () => { showFps = !showFps; if (!showFps) HUD.perf(null); });
+N_TRI = () => renderer.info.render.triangles;
+
+/* ============================ Intégration Android ============================ */
+//后退 bouton retour Android : ferme l'overlay ouvert, sinon pause
+window.__ndBack = () => {
+  if (HUD.anyOverlay()) {
+    if (document.getElementById('shopScreen').classList.contains('on')) { HUD.closeShop(); requestLock(); return; }
+    if (document.getElementById('noteScreen').classList.contains('on')) { document.getElementById('noteScreen').classList.remove('on'); requestLock(); return; }
+    if (document.getElementById('questScreen').classList.contains('on')) { HUD.closeQuests(); requestLock(); return; }
+    if (document.getElementById('settingsScreen').classList.contains('on')) { closeSettings(); return; }
+    if (document.getElementById('pauseScreen').classList.contains('on')) { togglePause(false); return; }
+    return;
+  }
+  if (G.playing && !G.dead) { togglePause(true); return; }
+  if (!G.playing) return;
+};
+// pause automatique quand Android met l'app en arrière-plan
+window.__ndPause = () => {
+  if (G.playing && !G.paused && !G.dead) { togglePause(true); }
+  requestSave(); doSave();
+};
+// retour visuel (vibration) sur Android
+function haptic(ms = 12) {
+  if (!S.haptic) return;
+  try { if (navigator.vibrate) navigator.vibrate(ms); } catch (e) { /* ignore */ }
+}
+window.__ndHaptic = haptic;
+// vibrations sur les retourRyazanov de gameplay
+function haptics() {
+  haptic(9);  // tir
+}
+window.__ndHaptic = haptic;
+// bandeau sûr Android (encoche / barre de gestes)
+function applyAndroidSafeArea() {
+  if (!/Android/i.test(navigator.userAgent)) return;
+  document.body.classList.add('android');
+  // le WebView Android n'expose pas toujours env() : on lit l'inset via un element test
+  const probe = document.createElement('div');
+  probe.style.cssText = 'position:fixed;top:0;left:0;width:0;height:0;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)';
+  document.body.appendChild(probe);
+  const cs = getComputedStyle(probe);
+  const top = parseFloat(cs.paddingTop) || 0, bottom = parseFloat(cs.paddingBottom) || 0;
+  probe.remove();
+  const r = document.documentElement.style;
+  r.setProperty('--sat', top + 'px');
+  r.setProperty('--sab', bottom + 'px');
+  document.body.classList.add('safe-measured');
+}
+applyAndroidSafeArea();
 
 /* ============================ API debug ============================ */
 window.__ND = {
   G, W, E, V, DEFS, LOOT, DROPS, NPCS: ROSTER, PL, Wp, cam, renderer, scene, IN,
   isBuild: () => buildMode, placeAt: () => tryPlaceAt(),
-  fireWeapon, updatePlayer, weapons: WEAPONS, selectWeapon, spawnEnemy, updateEnemies, hitEnemy,
+  fireWeapon, updatePlayer, weapons: WEAPONS, selectWeapon, spawnEnemy, updateEnemies, hitEnemy, liveStats,
   fx: FX, hud: HUD, world: W, mods,
 };

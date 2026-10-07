@@ -2,7 +2,7 @@
 //  hud.js — HUD, menus, boutique, carte, quêtes, toasts (DOM)
 // ============================================================================
 import * as THREE from 'three';
-import { G, S, mods, clamp, xpForLevel, saveSettings as saveS, applyQuality } from './state.js';
+import { G, S, mods, clamp, xpForLevel, UPGRADES, saveSettings as saveS, applyQuality } from './state.js';
 import { WEAPONS, ORDER, Wp, hasAmmo, selectWeapon } from './weapons.js';
 import { PARTS } from './building.js';
 import { QUESTS, POIs } from './director.js';
@@ -47,10 +47,14 @@ export function refreshWeaponBar() {
     const owned = k === 'grenade' ? G.grenades > 0 : (w.melee || G.unlocked[k] === 1);
     s.classList.toggle('sel', G.wpn === k);
     s.classList.toggle('empty', !owned);
+    // cadenas + prix affiché directement sur le slot
+    const nm = s.querySelector('.nm');
+    if (nm) nm.textContent = owned ? w.name.split(' ')[0] : '🔒' + (UPGRADES[k].price ? (UPGRADES[k].price / 1000) + 'k¥' : 'MAX');
   }
   // munitions
   const w = WEAPONS[G.wpn];
-  $('wname').textContent = w.name + (mods.silencer && (G.wpn === 'pistol' || G.wpn === 'rifle') ? ' +SIL' : '');
+  const lv = G.levels[G.wpn] || 1;
+  $('wname').textContent = w.name + (lv > 1 ? ' +' + lv : '') + (G.accLv.silencer > 0 && (G.wpn === 'pistol' || G.wpn === 'rifle') ? ' ·SIL' : '');
   if (w.melee) $('ammoTxt').innerHTML = '∞';
   else if (w.throwable) $('ammoTxt').innerHTML = `${G.grenades} <small> grenades</small>`;
   else {
@@ -110,6 +114,7 @@ export function updateHUD(dt) {
   $('lvlTxt').textContent = `NIV. ${G.lvl}`;
   $('xpTxt').textContent = `${Math.floor(G.xp)}/${xpForLevel(G.lvl)} XP`;
   $('xpFill').style.transform = `scaleX(${G.xp / xpForLevel(G.lvl)})`;
+  $('sYen').textContent = Math.round(G.yen || 0).toLocaleString('fr-FR');
   $('sScrap').textContent = G.scrap; $('sMed').textContent = G.meds; $('sFuel').textContent = G.fuel;
   // temps
   const night = G.phase < .22 || G.phase > .82;
@@ -154,7 +159,7 @@ function updateCompass() {
 const mm = $('mm').getContext('2d');
 let mmT = 0;
 function drawMap() {
-  const S = 300, C = S / 2, RANGE = 150, K = S / (RANGE * 2);
+  const S = 300, C = S / 2, RANGE = 190, K = S / (RANGE * 2);
   mmT -= 1;
   mm.fillStyle = 'rgba(4,8,18,.92)'; mm.fillRect(0, 0, S, S);
   // grille
@@ -240,6 +245,15 @@ export function prompt(key, txt) {
   $('promptKey').textContent = key; $('promptTxt').textContent = txt;
   p.classList.add('on');
 }
+/* ---------------- compteur de performance ---------------- */
+export function perf(fps, tris, calls, enemies) {
+  const el = $('perfBox');
+  if (!el) return;
+  if (fps === null) { el.classList.remove('on'); return; }
+  el.classList.add('on');
+  el.innerHTML = `${fps} FPS · ${(tris / 1000).toFixed(0)}k tri · ${calls} draw · ${enemies} infectés`;
+}
+
 /* ---------------- badge zone franche ---------------- */
 export function safeZone(z) {
   const b = $('safeBadge');
@@ -379,7 +393,7 @@ export function initSettingsHooks() {
     s.oninput = () => { v.textContent = fmt(s.value); set(+s.value); };
   };
   bindRange('sSens', 'vSens', 'sens', v => v * 100, v => v, x => (x / 100).toFixed(2), x => { S.sens = x / 100; saveS(); });
-  bindRange('sFov', 'vFov', 'fov', v => v, v => v, x => x, x => { S.fov = x; saveS(); });
+  bindRange('sFov', 'vFov', 'fov', v => v, v => v, x => x, x => { S.fov = x; saveS(); window.dispatchEvent(new Event('nd:fov')); });
   bindRange('sVol', 'vVol', 'vol', v => v * 100, v => v, x => x, x => { S.vol = x / 100; setVolume(x / 100); saveS(); });
   const seg = (id, attr, key, after) => {
     const box = $(id);
@@ -388,6 +402,10 @@ export function initSettingsHooks() {
   };
   seg('sBloom', 'b', 'bloom', () => { saveS(); });
   seg('sShake', 'k', 'shake', saveS);
+  seg('sHaptic', 'v', 'haptic', saveS);
+  // limite d'images
+  const fpsS = $('sFps'), fpsV = $('vFps');
+  if (fpsS) { fpsS.value = S.maxFps || 60; fpsV.textContent = S.maxFps || 60; fpsS.oninput = () => { S.maxFps = +fpsS.value; fpsV.textContent = fpsS.value; saveS(); }; }
   seg('sInv', 'i', 'invertY', saveS);
   // qualité
   const qb = $('sQual');

@@ -6,7 +6,7 @@ import { S, clamp } from './state.js';
 
 export const IN = {
   fwd: 0, side: 0, crouch: false, sprint: false,
-  fire: false, firePressed: false, fireReleased: false,
+  fire: false, firePressed: false, fireReleased: false, tapFire: false,
   aim: false, reload: false, interact: false,
   build: false, horn: false, heal: false, grenade: false,
   jump: false, brake: false,
@@ -55,7 +55,7 @@ const CODE = {
 const KEYMAP = {
   Space: 'jump', ShiftLeft: 'sprint', ShiftRight: 'sprint',
   KeyE: 'interact', KeyF: 'horn', KeyR: 'reload', KeyB: 'build', Tab: 'build',
-  KeyH: 'heal', KeyG: 'grenade', KeyC: 'crouch', KeyT: 'training',
+  KeyH: 'heal', KeyG: 'grenade', KeyC: 'crouch', KeyT: 'training', KeyV: 'gunsmith', KeyP: 'fps',
   KeyX: 'brake', KeyM: 'map',
   Digit1: 'slot1', Digit2: 'slot2', Digit3: 'slot3',
   Digit4: 'slot4', Digit5: 'slot5', Digit6: 'slot6', Digit7: 'slot7',
@@ -155,37 +155,40 @@ export function releaseAll() {
 }
 
 /* ---------------------------------------------------------------- tactile */
-const stickState = { l: null, r: null };
+const stickState = { l: null };
 
-function stick(zoneId, stickId, key) {
+/* ----------------stick de déplacement (gauche, flottant) ---------------- */
+function moveStick(zoneId, stickId) {
   const zone = document.getElementById(zoneId), st = document.getElementById(stickId);
   if (!zone || !st) return;
-  let id = null, cx = 0, cy = 0, R = 54;
+  let id = null, cx = 0, cy = 0;
+  const R = 58;
+
   const paint = (dx, dy) => {
-    st.style.left = cx + dx + 'px';
-    st.style.top = cy + dy + 'px';
-    // tuile la zone (le joystick peut apparaître n'importe où)
     const pr = zone.getBoundingClientRect();
-    const lx = clamp(cx - pr.left, 0, pr.width) - 0;
-    const ly = clamp(cy - pr.top, 0, pr.height);
-    zone.style.background = `radial-gradient(circle at ${lx}px ${ly}px, rgba(0,229,255,.05) 0 ${R}px, transparent ${R}px)`;
+    st.style.left = (cx - pr.left + dx) + 'px';
+    st.style.top = (cy - pr.top + dy) + 'px';
+    const lx = clamp(cx - pr.left, 0, pr.width), ly = clamp(cy - pr.top, 0, pr.height);
+    zone.style.background = `radial-gradient(circle at ${lx}px ${ly}px, rgba(0,229,255,.07) 0 ${R}px, transparent ${R}px)`;
   };
+  const reset = () => {
+    id = null; st.classList.remove('on'); stickState.l = null; zone.style.background = '';
+  };
+
   zone.addEventListener('touchstart', e => {
     for (const t of e.changedTouches) {
       if (id !== null) continue;
-      const leftHalf = t.clientX < innerWidth * .45;
-      if (key === 'l' && !leftHalf) continue;
-      if (key === 'r' && leftHalf) continue;
       id = t.identifier; cx = t.clientX; cy = t.clientY;
       const pr = zone.getBoundingClientRect();
       st.style.left = (t.clientX - pr.left) + 'px';
       st.style.top = (t.clientY - pr.top) + 'px';
       st.classList.add('on');
-      stickState[key] = { x: 0, y: 0 };
+      stickState.l = { x: 0, y: 0 };
       paint(0, 0);
     }
     e.preventDefault();
   }, { passive: false });
+
   zone.addEventListener('touchmove', e => {
     for (const t of e.changedTouches) {
       if (t.identifier !== id) continue;
@@ -193,20 +196,78 @@ function stick(zoneId, stickId, key) {
       const d = Math.hypot(dx, dy);
       if (d > R) { dx *= R / d; dy *= R / d; }
       paint(dx, dy);
-      stickState[key] = { x: clamp(dx / R, -1, 1), y: clamp(dy / R, -1, 1) };
+      // zone morte : évite les micro-dérives
+      const nx = dx / R, ny = dy / R;
+      const dead = 0.12;
+      const mag = Math.hypot(nx, ny);
+      stickState.l = mag < dead ? { x: 0, y: 0 } : { x: nx, y: ny, mag };
     }
     e.preventDefault();
   }, { passive: false });
-  const end = e => {
+
+  zone.addEventListener('touchend', e => { for (const t of e.changedTouches) if (t.identifier === id) reset(); });
+  zone.addEventListener('touchcancel', e => { for (const t of e.changedTouches) if (t.identifier === id) reset(); });
+}
+
+/* --------- zone droite : geste unifié  glisser = viser, taper = tirer ---------
+   C'est le standard des FPS mobiles et cela supprime tout conflit avec les
+   boutons (plus besoin d'une zone « joystick droit » qui se fait voler).      */
+const LOOK = { touchId: -1, sx: 0, sy: 0, moved: 0, t0: 0, firing: false };
+/** radians par pixel de glissement (identique à la souris : 0.0022) */
+const LOOK_SPEED = 0.0022;
+
+function lookZone(zoneId) {
+  const zone = document.getElementById(zoneId);
+  if (!zone) return;
+  const TAP_MS = 320, TAP_PX = 22;
+
+  zone.addEventListener('touchstart', e => {
     for (const t of e.changedTouches) {
-      if (t.identifier === id) {
-        id = null; st.classList.remove('on'); stickState[key] = null;
-        zone.style.background = '';
+      if (LOOK.touchId !== -1) continue;
+      if (t.target !== zone) continue;              // un bouton a été touché
+      LOOK.touchId = t.identifier;
+      LOOK.sx = t.clientX; LOOK.sy = t.clientY;
+      LOOK.moved = 0; LOOK.t0 = performance.now();
+      zone.classList.add('looking');
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  zone.addEventListener('touchmove', e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier !== LOOK.touchId) continue;
+      // ignore les micro-mouvements (bruit du capteur) : évite le tremblement
+      const rawX = t.clientX - LOOK.sx, rawY = t.clientY - LOOK.sy;
+      if (Math.abs(rawX) + Math.abs(rawY) < 1.2) continue;
+      const dx = rawX, dy = rawY;
+      LOOK.sx = t.clientX; LOOK.sy = t.clientY;
+      LOOK.moved += Math.abs(dx) + Math.abs(dy);
+      // même base que la souris (par pixel) : 0.0022 * sensibilité
+      // → un balayage d'écran = ~170°, indépendant de la résolution
+      const k = LOOK_SPEED * S.sens * (G_aimScale());
+      IN.lookX -= dx * k;
+      IN.lookY -= dy * k * (S.invertY ? -1 : 1);
+    }
+    e.preventDefault();
+  }, { passive: false });
+
+  const release = e => {
+    for (const t of e.changedTouches) {
+      if (t.identifier !== LOOK.touchId) continue;
+      const quick = performance.now() - LOOK.t0 < TAP_MS;
+      if (quick && LOOK.moved <= TAP_PX) {
+        // appui bref = un tir.
+        // On pose un drapeau PEUT ÊTRE lu par la boucle de jeu (et non un
+        // setTimeout) : sur un appareil lent une frame dure > 70 ms et le
+        // minuteur se déclenchait AVANT que la boucle voie le tir.
+        IN.tapFire = true;
       }
+      LOOK.touchId = -1; LOOK.firing = false;
+      zone.classList.remove('looking');
     }
   };
-  zone.addEventListener('touchend', end);
-  zone.addEventListener('touchcancel', end);
+  zone.addEventListener('touchend', release);
+  zone.addEventListener('touchcancel', release);
 }
 
 function btn(id, down, up) {
@@ -220,15 +281,16 @@ function btn(id, down, up) {
   b.addEventListener('mousedown', on);
   b.addEventListener('mouseup', off);
   b.addEventListener('mouseleave', off);
-  // prevent le double déclenchement clic+touch
   b.addEventListener('click', e => e.preventDefault());
 }
 
 function bindTouch() {
-  stick('zL', 'stickL', 'l');
-  stick('zR', 'stickR', 'r');
-  btn('bFire', () => { held.fire = true; edges.firePressed = true; }, () => { edges.fireReleased = true; held.fire = false; });
-  btn('bAim', () => { held.aim = true; }, () => { held.aim = false; });
+  moveStick('zL', 'stickL');
+  lookZone('zR');
+  // tir maintenu (le tap de la zone droite donne un tir unique)
+  btn('bFire', () => { held.fire = true; edges.firePressed = true; },
+              () => { edges.fireReleased = true; held.fire = false; });
+  btn('bAim', () => { held.aim = !held.aim; });
   btn('bJump', () => edges.jump = true);
   btn('bReload', () => edges.reload = true);
   btn('bAct', () => edges.interact = true);
@@ -286,7 +348,11 @@ export function pollInput(dt) {
   let s = (held['side+'] ? 1 : 0) - (held['side-'] ? 1 : 0);
   // axes tactiles
   const L = stickState.l;
-  if (L) { f += -L.y; s += L.x; }
+  if (L) {
+    f += -L.y; s += L.x;
+    // inclinaison du stick : course automatique au-delà de 92 %
+    if (L.mag > .92) IN.sprintSticky = true;
+  }
   // gamepad
   pollPad(dt);
   const l = Math.hypot(f, s);
@@ -296,7 +362,7 @@ export function pollInput(dt) {
   IN.crouch = !!held.crouch;
   IN.brake = !!held.brake;
   IN.aim = !!held.aim;
-  IN.fire = !!held.fire;
+  IN.fire = !!held.fire || IN.tapFire;
   IN.jump = !!edges.jump;
   IN.reload = !!edges.reload;
   IN.interact = !!edges.interact;
@@ -311,15 +377,17 @@ export function pollInput(dt) {
 /** consomme les fronts (à appeler une fois par frame, après usage) */
 export function consumeEdges() {
   const e = {
-    firePressed: !!edges.firePressed, fireReleased: !!edges.fireReleased,
+    firePressed: !!edges.firePressed, fireReleased: !!edges.fireReleased, tapFire: IN.tapFire,
+    up: null,
     jump: !!edges.jump, reload: !!edges.reload, interact: !!edges.interact,
     build: !!edges.build, horn: !!edges.horn, heal: !!edges.heal, grenade: !!edges.grenade,
-    training: !!edges.training, pause: !!edges.pause, map: !!edges.map,
+    training: !!edges.training, gunsmith: !!edges.gunsmith, fps: !!edges.fps, pause: !!edges.pause, map: !!edges.map,
     slot: typeof edges.slot === 'number' ? edges.slot : -1, wheel: edges.wheel | 0,
     lookX: IN.lookX, lookY: IN.lookY,
   };
   for (const k in edges) delete edges[k];
   IN.lookX = 0; IN.lookY = 0;
+  IN.tapFire = false;   // consommé par la boucle : exactement un tir par tap
   return e;
 }
 export function resetLook() { IN.lookX = 0; IN.lookY = 0; }
@@ -349,15 +417,15 @@ function layoutTouch() {
     e.style.bottom = bottom + 'px'; e.style.width = size + 'px'; e.style.height = size + 'px';
   };
   if (!landscape) return; // en portrait : l'écran de rotation s'affiche
-  // colonne droite (tir)
-  set('bFire', 18 * sc, 96 * sc, 78 * sc);
-  set('bAim', 104 * sc, 84 * sc, 52 * sc);
-  set('bReload', 106 * sc, 146 * sc, 46 * sc);
-  set('bJump', 22 * sc, 186 * sc, 50 * sc);
-  // colonne gauche (actions)
-  setL('bAct', 50, 74 * sc, 54 * sc);
-  setL('bBuild', 51, 136 * sc, 46 * sc);
-  setL('bHorn', 52, 188 * sc, 42 * sc);
-  set('bPause', 10, 8, 38);
+  // droite : FEU (maintenu) puis action / viser / recharger / saut
+  set('bFire', 18 * sc, 18 * sc, 82 * sc);
+  set('bAct', 112 * sc, 24 * sc, 56 * sc);
+  set('bAim', 84 * sc, 16 * sc, 52 * sc);
+  set('bReload', 82 * sc, 78 * sc, 46 * sc);
+  set('bJump', 20 * sc, 88 * sc, 48 * sc);
+  // centre-gauche : construire / klaxon / pause
+  setL('bBuild', 46, 16 * sc, 46 * sc);
+  setL('bHorn', 47, 72 * sc, 42 * sc);
+  setL('bPause', 3, 12, 38);
 }
 export { layoutTouch };

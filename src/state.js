@@ -18,7 +18,7 @@ export function makeRng(seed = 20871) {
   return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
 }
 
-export const WORLD = { R: 205, fogDay: 0x0a0a1e, fogNight: 0x0c0118 };
+export const WORLD = { R: 330, fogDay: 0x0a0a1e, fogNight: 0x0c0118 };
 
 /** jour/nuit : 0 = minuit, .25 = aube, .5 = midi, .75 = crépuscule */
 export function sunHeight(phase) { return Math.sin(phase * TAU); }
@@ -38,6 +38,7 @@ export const G = {
   dmgBoost: 1, healBoost: 1, iframeT: 0, invuln: false,
   /* inventaire */
   scrap: 45, meds: 2, grenades: 2, fuel: 1, cells: 0,
+  yen: 0,                     // monnaie des améliorations (gagnée à chaque kill)
   ammo: { pistol: { m: 15, r: 75 }, rifle: { m: 30, r: 180 }, shotgun: { m: 6, r: 32 }, dmr: { m: 8, r: 48 } },
   silencer: false, scope: false, grip: false,
   /* armes */
@@ -53,7 +54,7 @@ export const G = {
 };
 export const S = { // réglages persistants
   sens: 1, fov: 78, vol: .7, quality: 'high', bloom: true, shake: true, invertY: false, showUi: true,
-  leftHanded: false, qualityLocked: false,
+  leftHanded: false, qualityLocked: false, haptic: true, layout: null,
 };
 const SK = 'neondead.settings.v1', GVK = 'neondead.save.v1';
 
@@ -89,6 +90,7 @@ export function doSave(snapshot = null) {
       px: G.px, py: G.py, pz: G.pz, scrap: G.scrap, meds: G.meds, grenades: G.grenades, fuel: G.fuel, cells: G.cells,
       ammo: G.ammo, ammoIn: G.ammoIn, unlocked: G.unlocked, silencer: S.silencer, wpn: G.wpn,
       kills: G.kills, killsBy: G.killsBy, headshots: G.headshots, shotsFired: G.shotsFired, shotsHit: G.shotsHit,
+      yen: G.yen, levels: G.levels, accLv: G.accLv, mods: { ...mods, extmag: G.accLv.extmag > 0 },
       dmgDealt: G.dmgDealt, runDist: G.runDist, driveDist: G.driveDist, notesFound: G.notesFound,
       built: G.built, recruits: G.recruits, survived: G.survived, rep: G.rep, lootOpened: G.lootOpened,
       mods: modsSnapshot(),
@@ -110,6 +112,10 @@ export function restoreFrom(d) {
   G.unlocked = Object.assign(G.unlocked, d.unlocked || {});
   S.silencer = !!d.silencer; G.wpn = d.wpn || 'machete';
   G.kills = n('kills', 0); G.killsBy = d.killsBy || {}; G.headshots = n('headshots', 0);
+  G.yen = n('yen', 0);
+  G.levels = Object.assign({ machete: 1, knife: 1, pistol: 1, rifle: 1, shotgun: 1, dmr: 1, grenade: 1 }, d.levels || {});
+  G.accLv = Object.assign({ silencer: 0, scope: 0, grip: 0, extmag: 0 }, d.accLv || {});
+  Object.assign(mods, { silencer: G.accLv.silencer > 0, scope: G.accLv.scope > 0, grip: G.accLv.grip > 0 });
   G.shotsFired = n('shotsFired', 0); G.shotsHit = n('shotsHit', 0); G.dmgDealt = n('dmgDealt', 0);
   G.runDist = n('runDist', 0); G.driveDist = n('driveDist', 0);
   G.notesFound = d.notesFound || {}; G.built = n('built', 0); G.recruits = n('recruits', 0);
@@ -122,6 +128,51 @@ export function restoreFrom(d) {
 export const mods = { silencer: false, scope: false, grip: false };
 export function modsSnapshot() { return { ...mods }; }
 export function modsRestore(m) { Object.assign(mods, m); S.silencer = mods.silencer; }
+
+/* ==================== PROGRESSION DES ARMES ====================
+   Chaque arme a 5 niveaux. Chaque niveau : +dégâts, +cadence, +chargeur.
+   Améliorer coûte des yens (gagnés en tuant) + du scrap.            */
+export const UPGRADES = {
+  machete: { max: 5, cost: [120, 260, 520, 950], dmg: [58, 66, 76, 88, 102], rate: [2.3, 2.4, 2.5, 2.6, 2.8], price: 0, desc: 'Lame aiguisée' },
+  knife: { max: 5, cost: [90, 200, 420, 780], dmg: [34, 40, 47, 55, 64], rate: [4.2, 4.4, 4.6, 4.8, 5], price: 400, desc: 'Couteau tactique' },
+  pistol: { max: 5, cost: [150, 320, 640, 1150], dmg: [34, 39, 45, 52, 60], rate: [4.2, 4.4, 4.6, 4.9, 5.2], price: 0, desc: 'Pistolet K-9' },
+  rifle: { max: 5, cost: [200, 430, 850, 1550], dmg: [25, 29, 33, 38, 44], rate: [10, 10.5, 11, 11.5, 12], price: 0, desc: 'Fusil V-9' },
+  shotgun: { max: 5, cost: [280, 600, 1150, 2000], dmg: [17, 20, 23, 27, 31], rate: [1.25, 1.3, 1.4, 1.5, 1.6], price: 2200, desc: 'Fusil a pompes' },
+  dmr: { max: 5, cost: [400, 850, 1600, 2800], dmg: [88, 102, 118, 136, 156], rate: [1.35, 1.4, 1.45, 1.5, 1.6], price: 3400, desc: 'DMR de precision' },
+  grenade: { max: 3, cost: [200, 420], dmg: [60, 78, 100], rate: [.8, .8, .9], price: 0, desc: 'Grenade a bruit' },
+};
+export const ACCS = {
+  silencer: { name: 'Silencieux', desc: 'Tir discret, -70% de bruit', price: 1400, levels: [1400, 2800, 5000] },
+  scope: { name: 'Lunette', desc: '-45% de dispersion', price: 1800, levels: [1800, 3400, 6000] },
+  grip: { name: 'Poignee stabilisee', desc: '-40% de recul', price: 1200, levels: [1200, 2400, 4200] },
+  extmag: { name: 'Chargeur etendu', desc: '+60% de capacite', price: 1600, levels: [1600, 3000, 5200] },
+};
+/** niveaux d'arme/accessoire (sauvegardés) */
+G.levels = G.levels || { machete: 1, knife: 1, pistol: 1, rifle: 1, shotgun: 1, dmr: 1, grenade: 1 };
+G.accLv = G.accLv || { silencer: 0, scope: 0, grip: 0, extmag: 0 };
+
+export function upgradeCost(w, lv) {
+  const u = UPGRADES[w]; if (!u || lv >= u.max) return null;
+  return { yen: u.cost[lv - 1], scrap: Math.round(u.cost[lv - 1] * .45) };
+}
+export function accCost(a, lv) {
+  const d = ACCS[a]; if (!d || lv >= d.levels.length) return null;
+  return { yen: d.levels[lv] };
+}
+export function weaponPower(w, lv) {
+  const u = UPGRADES[w]; const i = Math.max(0, Math.min(u.max - 1, (lv || 1) - 1));
+  return { dmg: u.dmg[i], rate: u.rate[i] };
+}
+
+/* ---- progression du chargement (écran de démarrage) ---- */
+export const LOAD = { step: 0, total: 12, label: 'INITIALISATION' };
+export function loadStep(label, pct) {
+  LOAD.step++; LOAD.label = label;
+  try {
+    const l = document.getElementById('loadMsg');
+    if (l) l.textContent = label + '… ' + Math.round(pct * 100) + '%';
+  } catch (e) { /* ignore */ }
+}
 
 /* ---- grille de progression ---- */
 export function xpForLevel(l) { return Math.round(120 + l * 78 + Math.pow(l, 1.85) * 12); }

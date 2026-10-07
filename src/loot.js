@@ -8,7 +8,7 @@ import * as FX from './fx.js';
 import { SFX } from './audio.js';
 import { metal, halo } from './textures.js';
 import { POIs } from './director.js';
-const WORLD_RMAX = 195;
+const WORLD_RMAX = 300;
 
 export const LOOT = [];
 let scene = null;
@@ -86,7 +86,7 @@ export function openCrate(c) {
 
 export function buildLoot() {
   // caisses éparpillées
-  for (let i = 0; i < 55; i++) {
+  for (let i = 0; i < 110; i++) {
     const a = rand(0, TAU), rad = rand(24, WORLD_RMAX);
     spawnCrate(Math.cos(a) * rad, Math.sin(a) * rad, { color: pick([0x4a5a3a, 0x5a4a3a, 0x3a4a5a]) });
   }

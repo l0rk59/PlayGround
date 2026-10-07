@@ -9,11 +9,11 @@ import { halo as haloTex } from './textures.js';
 import { SFX } from './audio.js';
 
 export const TYPES = {
-  walker: { name: 'MARCHEUR', hp: 62, speed: 2.7, dmg: 7, atkCd: 1.0, xp: 11, sc: 1, col: 0x3d6b3a, head: 0x5b8a4a, eye: 0xff2244, reach: 1.5, aggro: 34, gib: 1 },
-  runner: { name: 'COUREUR', hp: 46, speed: 6.1, dmg: 5, atkCd: .62, xp: 15, sc: .88, col: 0x8a2f4a, head: 0xb04a60, eye: 0xff3355, reach: 1.4, aggro: 48, gib: 1, sprint: true },
-  crawler: { name: 'RAMPANT', hp: 58, speed: 4.4, dmg: 6, atkCd: .8, xp: 13, sc: .8, col: 0x3a3550, head: 0x554d70, eye: 0xaa66ff, reach: 1.3, aggro: 30, gib: 1, low: true },
-  spitter: { name: 'CRACHEUR', hp: 58, speed: 2.3, dmg: 11, atkCd: 2.1, xp: 24, sc: .95, col: 0x2a6b4a, head: 0x3f9a63, eye: 0x5dff9a, reach: 17, aggro: 30, gib: 1, ranged: true },
-  brute: { name: 'COLOSSE', hp: 320, speed: 2.1, dmg: 20, atkCd: 1.6, xp: 46, sc: 1.7, col: 0x4a3550, head: 0x6b4a70, eye: 0xff88ff, reach: 2.2, aggro: 40, gib: 2, boss: true },
+  walker:  { name: 'MARCHEUR', hp: 62, speed: 2.7, dmg: 7, atkCd: 1.0, xp: 11, sc: 1,   col: 0x7fa85c, head: 0xa8cf72, eye: 0xff2d44, reach: 1.5, aggro: 34, gib: 1 },
+  runner:  { name: 'COUREUR', hp: 46, speed: 6.1, dmg: 5, atkCd: .62, xp: 15, sc: .9,  col: 0xd05a72, head: 0xf08098, eye: 0xff4466, reach: 1.4, aggro: 48, gib: 1, sprint: true },
+  crawler: { name: 'RAMPANT', hp: 58, speed: 4.4, dmg: 6, atkCd: .8,  xp: 13, sc: .82, col: 0x8a7fc4, head: 0xb0a4e0, eye: 0xc48cff, reach: 1.3, aggro: 30, gib: 1, low: true },
+  spitter: { name: 'CRACHEUR', hp: 58, speed: 2.3, dmg: 11, atkCd: 2.1, xp: 24, sc: .96, col: 0x5fc98c, head: 0x86f0b0, eye: 0x5dff9a, reach: 17, aggro: 30, gib: 1, ranged: true },
+  brute:   { name: 'COLOSSE', hp: 320, speed: 2.1, dmg: 20, atkCd: 1.6, xp: 46, sc: 1.7, col: 0xa068c0, head: 0xc490e0, eye: 0xff88ff, reach: 2.2, aggro: 40, gib: 2, boss: true },
 };
 
 export const E = [];            // tous les infectés
@@ -34,84 +34,188 @@ function geoms() {
   return geo;
 }
 const matCache = new Map();
-function mtl(color, em = 0) {
+/** matière « chair » : légèrement auto-illuminée pour rester lisible dans la nuit */
+function mtl(color, em = 0, emis = .22) {
   const k = color + '_' + em;
-  if (!matCache.has(k)) matCache.set(k, new THREE.MeshStandardMaterial({ color, roughness: .88, metalness: .04, emissive: em, emissiveIntensity: em ? .8 : 0 }));
+  if (!matCache.has(k)) {
+    const c = new THREE.Color(color);
+    const e = em ? new THREE.Color(em) : c.clone().multiplyScalar(.5);
+    matCache.set(k, new THREE.MeshStandardMaterial({
+      color: c, roughness: .82, metalness: .03,
+      emissive: e, emissiveIntensity: em ? .9 : emis,
+    }));
+  }
   return matCache.get(k);
 }
 
 const rndSym = a => (Math.random() * 2 - 1) * a;
+
+export function initEnemies(sceneRef, camera) { scene = sceneRef; cam = camera; geoms(); }
+
 function buildModel(type) {
   const T = TYPES[type];
   const g = new THREE.Group();
-  const body = new THREE.Mesh(geoms().body, mtl(T.col));
-  body.position.y = .95; g.add(body);
+  const skin = mtl(T.col);
+  const dark = new THREE.Color(T.col).multiplyScalar(.72);
+  const fleshDark = mtl(dark.getHex());
+
+  /* ---------- anatomie : torse, bassin, tête, cou ---------- */
+  // torse (plus large que la capsule d'origine, épaules marquées)
+  const torso = new THREE.Mesh(geoms().torso, skin);
+  torso.position.y = 1.18; torso.scale.set(1, 1, .78); g.add(torso);
+  // ventre rentré
+  const belly = new THREE.Mesh(new THREE.SphereGeometry(.27, 10, 8), skin);
+  belly.position.y = .82; belly.scale.set(1, .82, .85); g.add(belly);
+  // bassin
+  const hips = new THREE.Mesh(new THREE.SphereGeometry(.26, 10, 7), fleshDark);
+  hips.position.y = .66; hips.scale.set(1.1, .8, .9); g.add(hips);
+  // cou penché + tête
+  const neck = new THREE.Mesh(new THREE.CylinderGeometry(.1, .12, .18, 6), fleshDark);
+  neck.position.set(0, 1.5, .06); neck.rotation.x = .3; g.add(neck);
   const head = new THREE.Mesh(geoms().head, mtl(T.head));
-  head.position.y = 1.66; g.add(head);
-  const jaw = new THREE.Mesh(geoms().jaw, mtl(0x20161c));
-  jaw.position.set(0, 1.55, .16); g.add(jaw);
+  head.position.set(0, 1.7, .1); head.rotation.x = .3;   // menton baissé = posture morte-vivant
+  head.scale.set(1.08, 1.14, 1.1); g.add(head);
+
+  /* ---------- visage : mâchoire ouverte, dents, orbites ---------- */
+  const jaw = new THREE.Group();
+  const jawBone = new THREE.Mesh(new THREE.BoxGeometry(.26, .09, .22), fleshDark);
+  jawBone.position.set(0, 1.5, .19); jaw.add(jawBone);
+  const teeth = new THREE.Mesh(new THREE.BoxGeometry(.2, .05, .04), new THREE.MeshStandardMaterial({ color: 0xd8d0b8, roughness: .8 }));
+  teeth.position.set(0, 1.56, .21); jaw.add(teeth);
+  const lowerTeeth = new THREE.Mesh(new THREE.BoxGeometry(.18, .04, .04), new THREE.MeshStandardMaterial({ color: 0xc0b89c, roughness: .85 }));
+  lowerTeeth.position.set(0, 1.47, .21); jaw.add(lowerTeeth);
+  g.add(jaw);
+  // orbites creuses (pas de cornea : regard mort)
   const eyeM = new THREE.MeshBasicMaterial({ color: T.eye, toneMapped: false });
   for (const s of [-1, 1]) {
-    const e = new THREE.Mesh(geoms().eye, eyeM);
-    e.position.set(s * .09, 1.7, .19); g.add(e);
+    const socket = new THREE.Mesh(new THREE.SphereGeometry(.085, 8, 6), mtl(0x120c10));
+    socket.position.set(s * .1, 1.72, .17); g.add(socket);
+    const e = new THREE.Mesh(new THREE.SphereGeometry(.065, 8, 6), eyeM);
+    e.position.set(s * .105, 1.72, .2); g.add(e);
+    // sourcil saillant
+    const brow = new THREE.Mesh(new THREE.BoxGeometry(.11, .035, .06), fleshDark);
+    brow.position.set(s * .1, 1.78, .2); brow.rotation.z = -s * .25; g.add(brow);
   }
+
+  // nez + oreilles : la tête ne doit plus être une simple boule
+  const nose = new THREE.Mesh(new THREE.ConeGeometry(.045, .1, 5), mtl(T.head));
+  nose.position.set(0, 1.68, .27); nose.rotation.x = Math.PI / 2; g.add(nose);
+  for (const sgn of [-1, 1]) {
+    const ear = new THREE.Mesh(new THREE.ConeGeometry(.05, .13, 5), mtl(T.head));
+    ear.position.set(sgn * .23, 1.7, .04); ear.rotation.z = -sgn * 1.2; g.add(ear);
+  }
+
+  /* ---------- membres : bras tendus vers l'avant ---------- */
   const arms = [], legs = [];
   for (const s of [-1, 1]) {
-    const a = new THREE.Mesh(geoms().arm, mtl(T.col));
-    a.position.set(s * .42, 1.15, .1); g.add(a); arms.push(a);
-    const l = new THREE.Mesh(geoms().leg, mtl(T.col));
-    l.position.set(s * .16, .38, 0); g.add(l); legs.push(l);
+    // bras : pivot à l'épaule, segment haut + avant-bras
+    const sh = new THREE.Group();
+    sh.position.set(s * .34, 1.36, .04);
+    const upper = new THREE.Mesh(geoms().arm, skin);
+    upper.position.y = -.22; sh.add(upper);
+    const fore = new THREE.Mesh(geoms().fore, fleshDark);
+    fore.position.set(0, -.6, .16); fore.rotation.x = -.7; sh.add(fore);
+    // main : doigts écartés
+    const hand = new THREE.Mesh(geoms().hand, fleshDark);
+    hand.position.set(0, -.72, .34); sh.add(hand);
+    g.add(sh); arms.push(sh);
+    // jambe : cuisse + tibia
+    const hip = new THREE.Group();
+    hip.position.set(s * .15, .6, 0);
+    const thigh = new THREE.Mesh(geoms().thigh, fleshDark);
+    thigh.position.y = -.2; hip.add(thigh);
+    const shin = new THREE.Mesh(geoms().shin, skin);
+    shin.position.set(0, -.5, .04); shin.rotation.x = .16; hip.add(shin);
+    g.add(hip); legs.push(hip);
   }
-  // clothing en lambeaux : casse la silhouette « capsule »
-  const cloth = new THREE.MeshStandardMaterial({ color: new THREE.Color(T.col).multiplyScalar(.42).offsetHSL(0, -.05, 0), roughness: .98 });
-  const tatters = 5 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < tatters; i++) {
-    const a = i / tatters * TAU;
-    const w = .14 + Math.random() * .12;
-    const sh = new THREE.Mesh(new THREE.BoxGeometry(w, .3 + Math.random() * .45, .05), cloth);
-    sh.position.set(Math.cos(a) * .3, .75 + Math.random() * .45, Math.sin(a) * .22);
-    sh.rotation.set(Math.random() * .4 - .2, a, Math.random() * .5 - .25);
-    g.add(sh);
+
+  /* ---------- vêtements en lambeaux ---------- */
+  const clothCol = new THREE.Color(T.col).multiplyScalar(.5).offsetHSL(.02, -.15, .04);
+  const cloth = new THREE.MeshStandardMaterial({ color: clothCol, roughness: 1, emissive: clothCol, emissiveIntensity: .1 });
+  // chemise déchirée autour du torse
+  const shirt = new THREE.Mesh(new THREE.CylinderGeometry(.315, .28, .52, 12), new THREE.MeshStandardMaterial({
+    color: clothCol, roughness: .98, emissive: clothCol, emissiveIntensity: .12,
+  }));
+  shirt.position.y = 1.1; shirt.scale.set(1, 1, .82); shirt.rotation.z = .05; g.add(shirt);
+  // col relevé
+  const collar = new THREE.Mesh(new THREE.CylinderGeometry(.19, .24, .14, 10), new THREE.MeshStandardMaterial({
+    color: clothCol.getHex(), roughness: .98, emissive: clothCol, emissiveIntensity: .12,
+  }));
+  collar.position.y = 1.44; g.add(collar);
+  // pans qui pendent
+  for (let i = 0; i < 6; i++) {
+    const a = i / 6 * TAU + .3;
+    const w = .13 + Math.random() * .1, h = .26 + Math.random() * .42;
+    const rag = new THREE.Mesh(new THREE.PlaneGeometry(w, h), cloth);
+    rag.position.set(Math.cos(a) * .3, .95 - Math.random() * .25, Math.sin(a) * .24);
+    rag.rotation.set(rndSym(.3), a, rndSym(.35));
+    g.add(rag);
   }
-  // veines lumineuses (le virus NÉON-X est visible sous la peau)
-  const veinMat = new THREE.MeshBasicMaterial({ color: T.eye, transparent: true, opacity: .75, toneMapped: false });
-  const veins = 4 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < veins; i++) {
-    const v = new THREE.Mesh(new THREE.BoxGeometry(.025, .18 + Math.random() * .3, .025), veinMat);
-    v.position.set(rndSym(.28), .9 + Math.random() * .8, rndSym(.2));
-    v.rotation.set(rndSym(.6), Math.random() * TAU, rndSym(.6));
+  // ceinture / lambeau de pantalon
+  const belt = new THREE.Mesh(new THREE.BoxGeometry(.52, .1, .4), new THREE.MeshStandardMaterial({ color: clothCol.getHex(), roughness: 1 }));
+  belt.position.y = .68; g.add(belt);
+
+  /* ---------- veines du virus ---------- */
+  const veinMat = new THREE.MeshBasicMaterial({ color: T.eye, transparent: true, opacity: .8, toneMapped: false });
+  for (let i = 0; i < 5; i++) {
+    const v = new THREE.Mesh(new THREE.BoxGeometry(.022, .14 + Math.random() * .26, .022), veinMat);
+    v.position.set(rndSym(.26), 1 + Math.random() * .6, .2 - Math.random() * .1);
+    v.rotation.set(rndSym(.5), Math.random() * TAU, rndSym(.5));
     g.add(v);
   }
-  // halo oculaire
-  const eyeGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex(), color: T.eye, transparent: true, opacity: .55, blending: THREE.AdditiveBlending, depthWrite: false }));
-  eyeGlow.position.set(0, 1.7, .26); eyeGlow.scale.setScalar(.55);
-  g.add(eyeGlow);
-  g.userData.eyeGlow = eyeGlow;
-  // épaules / col : épaulières
-  for (const s2 of [-1, 1]) {
-    const sh = new THREE.Mesh(new THREE.SphereGeometry(.13, 7, 5), mtl(T.head));
-    sh.position.set(s2 * .36, 1.34, 0); sh.scale.set(1, .8, 1);
-    g.add(sh);
+  // fissures émissives sur le torse (plus lisibles qu'avant)
+  for (let i = 0; i < 3; i++) {
+    const cr = new THREE.Mesh(new THREE.BoxGeometry(.16, .022, .022), veinMat);
+    cr.position.set(rndSym(.2), 1.1 + Math.random() * .3, .24);
+    cr.rotation.set(rndSym(.4), 0, rndSym(.9));
+    g.add(cr);
   }
-  if (T.boss) { // cornes / blindage
+  // halo oculaire
+  const eyeGlow = new THREE.Sprite(new THREE.SpriteMaterial({ map: haloTex(), color: T.eye, transparent: true, opacity: .5, blending: THREE.AdditiveBlending, depthWrite: false }));
+  eyeGlow.position.set(0, 1.72, .26); eyeGlow.scale.setScalar(.72);
+  g.add(eyeGlow); g.userData.eyeGlow = eyeGlow;
+
+  /* ---------- spécificités ---------- */
+  if (T.boss) {
+    // Colosse : massif, cornes, blindage, poings lourds
     for (const s of [-1, 1]) {
-      const h = new THREE.Mesh(new THREE.ConeGeometry(.09, .34, 5), mtl(0xd8c8a8));
-      h.position.set(s * .17, 1.92, 0); h.rotation.z = s * .4; g.add(h);
+      const horn = new THREE.Mesh(new THREE.ConeGeometry(.1, .4, 6), new THREE.MeshStandardMaterial({ color: 0xcbbb96, roughness: .85 }));
+      horn.position.set(s * .17, 1.95, .04); horn.rotation.set(.3, 0, -s * .45); g.add(horn);
+      const fist = new THREE.Mesh(new THREE.IcosahedronGeometry(.17, 0), mtl(T.head));
+      fist.position.set(0, -.78, .38); arms[arms.length - 1].add(fist);
     }
-    const plate = new THREE.Mesh(new THREE.BoxGeometry(.7, .5, .2), mtl(0x2a2a30, 0x220022));
-    plate.position.set(0, 1.2, .3); g.add(plate);
+    const plate = new THREE.Mesh(new THREE.BoxGeometry(.62, .5, .14), new THREE.MeshStandardMaterial({ color: 0x6a6a78, roughness: .5, metalness: .6, emissive: 0x221133, emissiveIntensity: 1 }));
+    plate.position.set(0, 1.24, .24); g.add(plate);
+    for (let i = 0; i < 4; i++) {
+      const st = new THREE.Mesh(new THREE.ConeGeometry(.05, .16, 4), new THREE.MeshStandardMaterial({ color: 0x8a8f9a, metalness: .8, roughness: .3 }));
+      st.position.set(-.2 + i * .13, 1.02, .28); st.rotation.x = Math.PI; g.add(st);
+    }
   }
   if (T.ranged) {
-    const sac = new THREE.Mesh(new THREE.SphereGeometry(.26, 8, 6), new THREE.MeshStandardMaterial({ color: 0x3dff9a, emissive: 0x1f8f52, emissiveIntensity: 1, transparent: true, opacity: .8 }));
-    sac.position.set(0, 1.3, -.3); g.add(sac);
-    g.userData.sac = sac;
+    // Cracheur : sac acide gonflé dans le dos + buboes
+    const sac = new THREE.Group();
+    const bladder = new THREE.Mesh(new THREE.SphereGeometry(.3, 10, 8), new THREE.MeshStandardMaterial({ color: 0x2f8f58, emissive: 0x1f8f52, emissiveIntensity: 1, transparent: true, opacity: .85, roughness: .4 }));
+    bladder.scale.set(1, 1.25, .8); sac.add(bladder);
+    for (let i = 0; i < 3; i++) {
+      const b = new THREE.Mesh(new THREE.SphereGeometry(.07 + Math.random() * .05, 6, 5), new THREE.MeshBasicMaterial({ color: 0x5dff9a, toneMapped: false }));
+      b.position.set(rndSym(.18), (i - 1) * .14, -.16); sac.add(b);
+    }
+    sac.position.set(0, 1.2, -.32); g.add(sac); g.userData.sac = bladder;
   }
-  if (T.low) { g.rotation.x = -.25; }
+  if (T.sprint) {
+    // Coureur : plus maigre, tendons marqués
+    torso.scale.set(.9, 1.04, .7);
+    head.scale.set(.86, .94, 1);
+  }
+  if (T.low) {
+    // Rampant : posture au sol, membres repliés
+    g.rotation.x = -.32; g.position.y = -.18;
+    g.scale.set(1.05, .82, 1.15);
+  }
+
   g.scale.setScalar(T.sc);
   return { m: g, arms, legs, head, jaw };
 }
-
-export function initEnemies(sceneRef, camera) { scene = sceneRef; cam = camera; geoms(); }
 
 export function spawnEnemy(type, x, z, opts = {}) {
   const T = TYPES[type] || TYPES.walker;
@@ -160,8 +264,10 @@ export function killEnemy(e, opts = {}) {
   e.die = .001;
   const T = TYPES[e.type];
   G.kills++; G.killsBy[e.type] = (G.killsBy[e.type] || 0) + 1;
-  if (opts.headshot) G.headshots++;
+  if (opts.headshot) { G.headshots++; G.yen += 6; }
   const levels = addXp(Math.round(T.xp * (e.elite ? 1.6 : 1)));
+  // --- monnaie : c'est la récompense principale des éliminations
+  G.yen += Math.round((8 + T.gib * 5 + (e.type === 'brute' ? 40 : e.type === 'runner' ? 6 : 0)) * (e.elite ? 2.2 : 1));
   // butin
   const luck = Math.random();
   let scrap = randi(2, 5) + (T.gib - 1) * 3;
@@ -292,28 +398,36 @@ export function updateEnemies(dt, playerObj) {
     } else e.lunge = Math.max(0, e.lunge - dt * 2);
     // --- animation
     const moving = d > (T.ranged ? T.reach * .8 : 1.2);
-    e.phase += dt * (moving ? (T.sprint ? 11 : 6.5) * T.sc : 1.4);
+    e.phase += dt * (moving ? (T.sprint ? 12 : 7) * T.sc : 1.5);
     const sw = Math.sin(e.phase), sw2 = Math.sin(e.phase * 2);
+    // bras : balancier ample + extension quand il attaque
     for (let a = 0; a < e.arms.length; a++) {
-      const s = a === 0 ? 1 : -1;
-      e.arms[a].rotation.x = (moving ? sw * .8 - .5 : -.6 + sw * .1) + (e.aggro && d < T.reach ? -1.2 * e.lunge : 0) - (T.ranged ? .4 : 0);
-      e.arms[a].rotation.z = s * (.2 + (T.ranged ? .3 : 0)) * (T.low ? 0 : 1);
+      const sgn = a === 0 ? 1 : -1;
+      const reach = e.aggro && d < T.reach ? 1 : 0;
+      e.arms[a].rotation.x = (moving ? sw * .55 * sgn - .75 : -.55 + sw * .08)
+        - reach * .9 * e.lunge - (T.ranged ? .5 : 0);
+      e.arms[a].rotation.z = sgn * (.14 + (T.ranged ? .35 : 0) + (moving ? Math.abs(sw) * .08 : 0));
     }
+    // jambes : marche alternée (hanches)
     for (let l = 0; l < e.legs.length; l++) {
-      const s = l === 0 ? 1 : -1;
-      e.legs[l].rotation.x = moving ? sw2 * .7 * s : 0;
+      const sgn = l === 0 ? 1 : -1;
+      e.legs[l].rotation.x = moving ? sw2 * .62 * sgn : 0;
+      e.legs[l].rotation.z = 0;
     }
-    e.head.rotation.y = Math.sin(e.phase * .5) * .25;
-    e.head.rotation.x = T.low ? .5 : Math.max(-.4, Math.min(.4, (e.aggro ? 1 : 0) * .3 - .1));
-    e.jaw.rotation.x = e.aggro ? .2 + Math.abs(Math.sin(e.phase * 1.5)) * .3 : 0;
-    e.m.position.y = Math.abs(Math.sin(e.phase)) * (T.low ? .02 : .06);
-    if (!T.low) e.m.rotation.x = lerp(e.m.rotation.x, moving ? .08 : 0, dt * 4);
+    // tête : ballant, mâchoire
+    e.head.rotation.y = Math.sin(e.phase * .5) * .2;
+    e.head.rotation.z = Math.sin(e.phase) * .07;
+    e.head.rotation.x = .28 + (e.aggro ? .18 : 0) + (T.low ? .35 : 0);
+    // mâchoire : s'ouvre quand il chasse
+    e.jaw.position.y = 1.5 - (e.aggro ? .04 : 0) - Math.abs(Math.sin(e.phase * 1.2)) * .045;
+    e.m.position.y = Math.abs(Math.sin(e.phase * 2)) * (T.low ? .015 : .045);
+    if (!T.low) e.m.rotation.x = lerp(e.m.rotation.x, moving ? .1 : .02, dt * 4);
     // orientation
     if (e.aggro || moving) e.m.rotation.y = lerpAngle(e.m.rotation.y, ang, dt * 6);
     // grognements
     e.grrow = (e.grrow || rand(3, 12)) - dt;
     if (e.grrow <= 0) { e.grrow = rand(6, 20); if (dist < 34) SFX.zGrowl(dist); if (e.type === 'runner' && dist < 22) SFX.zShriek(); }
-    if (e.sac) e.sac.scale.setScalar(1 + Math.sin(G.t * 3 + e.phase) * .12);
+    if (e.sac) e.sac.scale.set(1 + Math.sin(G.t * 3 + e.phase) * .1, 1.25 + Math.sin(G.t * 3 + e.phase) * .14, .8);
     if (e.eyeGlow) e.eyeGlow.material.opacity = .4 + Math.abs(Math.sin(G.t * 2 + e.phase)) * .45;
   }
   // population de fond
