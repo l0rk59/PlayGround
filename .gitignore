@@ -16,3 +16,8 @@ screenshots/
 .opencode-web/
 
 node_modules/
+
+# build Android (artefacts régénérables)
+android/build/
+android/app/src/main/assets/
+.testbuild/
