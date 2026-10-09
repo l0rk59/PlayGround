@@ -1,0 +1,43 @@
+import { createRequire } from 'node:module';
+import { createServer } from 'node:http';
+import { readFileSync, existsSync } from 'node:fs';
+const PORT = 6000 + Math.floor(Math.random() * 300);
+const MIME={'.html':'text/html','.js':'application/javascript'};
+const srv=createServer((q,r)=>{const f=q.url==='/'?'/index.html':q.url.split('?')[0];
+ const p='tools/../.testbuild'+f; if(!existsSync(p)){r.writeHead(404);r.end();return;}
+ r.writeHead(200,{'Content-Type':MIME[f.slice(f.lastIndexOf('.'))]||'application/octet-stream'});r.end(readFileSync(p));});
+await new Promise(r=>srv.listen(PORT,'127.0.0.1',r));
+const { chromium } = createRequire('/home/runner/.local/share/omgithub-playwright/package.json')('playwright');
+const cfg = JSON.parse(readFileSync('/home/runner/.local/share/omgithub-playwright/linux.json','utf8'));
+const b = await chromium.launch(cfg.browser.launchOptions);
+const p = await b.newPage({viewport:{width:430,height:932,deviceScaleFactor:2}});
+const errs=[]; p.on('pageerror',e=>errs.push('PAGEERROR: '+e.message));
+p.on('console',m=>{if(m.type()==='error')errs.push('CONSOLE: '+m.text());});
+await p.goto('http://127.0.0.1:'+PORT+'/index.html',{waitUntil:'load'});
+await p.waitForTimeout(2500);
+const out = await p.evaluate(()=>{
+  const H=window.__H,out=[];
+  const ok=(c,l)=>out.push((c?'✅':'❌')+' '+l);
+  // on donne des valeurs pour que les calculs soient Awake
+  H.S.playT=1800; H.S.totalEarned=1240; H.S.qSum=86; H.S.totalSold=9;
+  H.S.clients=7; H.S.haggled=3; H.S.level=5; H.S.rep=4; H.S.muts=2; H.S.crossed=1;
+  H.S.bestGrade='A'; H.S.vipSold=1; H.S.dayN=6; H.S.rescues=1; H.S.raids=2; H.S.bustStreak=1;
+  document.getElementById('pStatsBtn').click();
+  const open=document.getElementById('statsSheet').classList.contains('open');
+  ok(open,'la feuille Statistiques s\'ouvre (elle ne marchait pas avant)');
+  const h=document.getElementById('statsBody').innerHTML;
+  ok(h.length>200,'le contenu est rempli ('+h.length+' car.)');
+  ok(/Revenus totaux/.test(h)&&/€\/h/.test(h),'revenus et €/h affichés');
+  ok(/Taux de deals propres/.test(h),'taux de deals propres');
+  ok(/Subis|Contrôles/.test(h),'contrôles subis');
+  ok(/Mutations/.test(h),'mutations / croisements');
+  ok(h.indexOf('undefined')<0 && h.indexOf('NaN')<0,'aucune valeur undefined/NaN',(h.match(/undefined|NaN/g)||[]).join(','));
+  return out;
+});
+console.log(out.join('\n'));
+await p.screenshot({path:'/tmp/stats.png'});
+const bad=out.filter(l=>l.startsWith('\u274c'));
+console.log('\nBILAN STATS:',bad.length?'\u274c '+bad.length+' \u00c9CHEC(S)':'\u2705 TOUT PASSE');
+console.log('erreurs console:',errs.length?errs.slice(0,5):'aucune');
+await b.close();srv.close();
+process.exit(bad.length||errs.length?1:0);

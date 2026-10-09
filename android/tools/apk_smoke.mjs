@@ -72,6 +72,13 @@ for (const [name, w, h, touch] of [['apk-phone', 412, 915, true], ['apk-tablet',
   T(external.length === 0, 'aucune ressource externe demandée (' + external.length + ')');
   T(errs.length === 0, 'aucune erreur console' + (errs.length ? ' : ' + errs.slice(0, 3).join(' | ') : ''));
 
+  // le tutoriel consomme le premier appui retour sur une partie neuve :
+  // on le referme d'abord, sinon on teste le tutoriel et non le bouton retour.
+  await page.evaluate(() => {
+    const t = document.getElementById('tuto');
+    if (t && t.classList.contains('open')) document.getElementById('tutoSkip').click();
+  });
+
   // --- contrat du bouton retour (comme handleBack() côté Java) ---
   const back = await page.evaluate(() => {
     const out = [];

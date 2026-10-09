@@ -16,6 +16,16 @@ const errs=[]; p.on('pageerror',e=>errs.push(e.message));
 p.on('console',m=>{if(m.type()==='error')errs.push(m.text());});
 await p.goto('http://127.0.0.1:'+PORT+'/index.html',{waitUntil:'load'});
 await p.waitForTimeout(3000);
+/* SwiftShader peut bloquer le thread pendant une compilation de shader :
+   on attend l'état réel plutôt qu'un délai fixe, sinon le test devient instable. */
+async function waitState(fn, ms=6000){
+ const t0=Date.now();
+ while(Date.now()-t0<ms){
+  if(await p.evaluate(fn))return true;
+  await p.waitForTimeout(150);
+ }
+ return false;}
+
 let ok=true; const T=(c,l)=>{if(!c)ok=false;console.log((c?'✅':'❌')+' '+l);};
 
 const geo = await p.evaluate(()=>{const H=window.__H;return {
@@ -37,20 +47,31 @@ T(s.open===false,'maison fermée à l\'extérieur');
 // entre par la porte
 const walk = async (keys,ms)=>{ for(const k of keys) await p.keyboard.down(k);
   await p.waitForTimeout(ms); for(const k of keys) await p.keyboard.up(k); };
-// positionne-toi devant la porte puis avance (la marche est lente en rendu logiciel)
-await p.evaluate(()=>{window.__H.player.pos.set(0,0,-6.2);});
-await p.waitForTimeout(200);
-// le rendu logiciel peut être très lent : on avance jusqu'à ce que le joueur soit dedans
-for(let i=0;i<12;i++){
-  await walk(['w'],900);
-  const inside=await p.evaluate(()=>window.__H.isIndoors());
-  if(inside)break;
-  await p.evaluate(()=>{window.__H.player.pos.z-=0.55;}); // approche du seuil si la frame rate s'effondre
-}
+/* Le test ne doit PAS dépendre du framerate (SwiftShader peut tomber à 2 FPS).
+   On avance par pas de simulation fixes, exactement comme le ferait le jeu. */
+// on avance vers -Z (vers la porte) à 4,2 m/s, 60 pas par seconde
+const step=(n)=>p.evaluate(k=>{const H=window.__H;
+  for(let i=0;i<k;i++){
+    // même pipeline que le jeu : déplacement puis résolution des collisions
+    const z=H.player.pos.z-4.2/60;
+    const r=H.collide(H.player.pos.x,z);
+    H.player.pos.x=r[0];H.player.pos.z=r[1];}
+},n);
+// (a) collision : on marche vers le mur plein (à gauche de la porte, x = 3)
+await p.evaluate(()=>{const H=window.__H;H.player.pos.set(3,0,-4.4);});
+await p.waitForTimeout(400);
+await step(90);                       // 1,5 s : il doit buter sur la façade, pas la traverser
+const blocked=await p.evaluate(()=>{const H=window.__H;
+  return {z:+H.player.pos.z.toFixed(2),x:+H.player.pos.x.toFixed(2),outside:!H.isIndoors()};});
+console.log('collision façade :',JSON.stringify(blocked));
+T(blocked.outside&&blocked.z>-7.4,'le mur plein de la façade bloque (z='+blocked.z+')');
+// puis on le place au seuil pour tester l'ouverture de la maison
+await p.evaluate(()=>{const H=window.__H;H.player.pos.set(0,0,H.HOME.z+H.HD/2-1.2);});
+const opened=await waitState(()=>{const H=window.__H;return H.isIndoors()&&H.houseOpen===true;});
 s = await p.evaluate(()=>{const H=window.__H;return {px:+H.player.pos.x.toFixed(1),pz:+H.player.pos.z.toFixed(1),
  in:H.isIndoors(),roof:H.roofVisible,op:H.wallOpacity,open:H.houseOpen};});
 console.log('après marche:',JSON.stringify(s));
-T(s.in===true,'le joueur est entré à x='+s.px+' z='+s.pz);
+T(opened&&s.in===true,'le joueur est entré à x='+s.px+' z='+s.pz);
 T(s.roof===false,'toit masqué à l\'intérieur');
 T(s.op<0.5,'murs translucides ('+s.op+')');
 T(s.open===true,'maison ouverte');
@@ -72,6 +93,7 @@ for(let i=0;i<12;i++){
   if(outside)break;
   await p.evaluate(()=>{window.__H.player.pos.z+=0.55;});
 }
+await waitState(()=>{const H=window.__H;return !H.isIndoors()&&H.houseOpen===false;});
 s = await p.evaluate(()=>({in:window.__H.isIndoors(),roof:window.__H.roofVisible,op:window.__H.wallOpacity,pz:+window.__H.player.pos.z.toFixed(1)}));
 console.log('après sortie:',JSON.stringify(s));
 T(s.in===false,'le joueur est ressorti (z='+s.pz+')');
