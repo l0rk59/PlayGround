@@ -45,7 +45,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 .tag.show{display:block}
 #tagHide{border-color:var(--green)}#tagSafe{border-color:var(--gold);color:var(--gold)}
 #chase{position:fixed;z-index:31;top:calc(152px + env(safe-area-inset-top));left:0;right:0;text-align:center;display:none;font-weight:900;font-size:16px;color:#fff;text-shadow:0 2px 12px #f00;animation:blink .5s infinite}
-#joy{touch-action:none;position:fixed;z-index:21;left:14px;bottom:calc(18px + env(safe-area-inset-bottom));width:128px;height:128px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.25)}
+#joy{touch-action:none;position:fixed;z-index:21;left:14px;bottom:calc(18px + env(safe-area-inset-bottom));width:132px;height:132px;border-radius:99px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.25)}
 #stick{position:absolute;left:39px;top:39px;width:50px;height:50px;border-radius:99px;background:rgba(61,220,116,.55);border:1px solid rgba(61,220,116,.9)}
 /* barre de commandes : colonnes compactes à droite.
    La 3e ligne (Stats + Carrière) descend sous la zone d'aide pour ne rien masquer. */
@@ -53,7 +53,7 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
   display:grid;grid-template-columns:1fr 1fr;gap:7px;
   width:min(230px,calc(100vw - 210px))}
 #btnAct{grid-column:1/-1}
-.abtn{border:0;border-radius:14px;font-weight:900;color:#fff;min-width:0;min-height:52px;padding:9px 4px;font-size:14px;
+.abtn{border:0;border-radius:14px;font-weight:900;color:#fff;min-width:0;min-height:59px;padding:9px 4px;font-size:14px;
   box-shadow:0 6px 18px rgba(0,0,0,.45);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;line-height:1.1}
 .abtn small{font-size:9px;font-weight:700;opacity:.9}
 #btnAct{background:linear-gradient(180deg,#c6f16d,#22b573);color:#06210f;font-size:15px;display:none}
@@ -87,6 +87,17 @@ html,body{margin:0;padding:0;height:100%;overflow:hidden;background:var(--bg);co
 .optbtn.on{background:#3ddc74;color:#06210f}
 .optbtn.off{background:#3a2030;color:#ffd9e0}
 .optdanger{background:#5a1020!important}
+/* daltonien : on ne se fie jamais à la couleur seule.
+   Le HUD gagne des contours épais et les jauges un motif en diagonale. */
+body.cb #hud,body.cb .sheet .card{--gold:#ffd400;--green:#00e5a0;--red:#ff4d6d}
+body.cb .abtn,body.cb .bigbtn{border:2px solid rgba(255,255,255,.75)}
+body.cb #btnSprint{background:#0057b8!important;border-color:#ffd400!important}
+body.cb #btnSneak{background:#3a2a00!important;border-color:#ffd400!important}
+body.cb .bigbtn{background-image:repeating-linear-gradient(45deg,
+ rgba(255,255,255,.14) 0 6px,transparent 6px 12px)}
+body.cb #stamFill{background-image:repeating-linear-gradient(90deg,
+ rgba(0,0,0,.35) 0 4px,transparent 4px 8px)}
+body.cb #prompt,body.cb #toasts .toast{border-width:2px;border-style:solid}
 /* accessibilité : contraste renforcé */
 body.contrast .card,body.contrast .sheet{background:#000!important;border-color:#fff!important}
 body.contrast{--txt:#fff;--dim:#e6e6e6}
@@ -109,7 +120,7 @@ body.lefthand #joy{left:auto;right:14px}
 .riskbar,.patbar{height:9px;background:rgba(255,255,255,.12);border-radius:99px;overflow:hidden;margin:6px 0}
 .riskbar i{display:block;height:100%;background:linear-gradient(90deg,#3ddc74,#ffd166,#ff4d6d);border-radius:99px}
 .patbar i{display:block;height:100%;background:linear-gradient(90deg,#4cc3ff,#3ddc74);border-radius:99px}
-.bigbtn{width:100%;border:0;border-radius:13px;padding:14px;font-weight:900;font-size:14px;min-height:54px;margin-top:7px}
+.bigbtn{width:100%;border:0;border-radius:13px;padding:14px;font-weight:900;font-size:14px;min-height:56px;margin-top:7px}
 .upg{display:flex;gap:9px;align-items:center;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:9px;margin:7px 0;font-size:12px}
 .upg .inf{flex:1}.upg button{border:0;border-radius:10px;padding:11px;font-weight:800;min-height:46px;min-width:90px}
 #busted{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;background:rgba(120,0,10,.55);padding:20px}
@@ -141,6 +152,15 @@ body.lefthand #joy{left:auto;right:14px}
 </style>
 <script type="importmap">{"imports":{"three":"./three.module.js","three/addons/":"./vendor/three/"}}</script>
 </head>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+ <filter id="none"><feComponentTransfer><feFuncA type="identity"/></feComponentTransfer></filter>
+ <filter id="fProt" color-interpolation-filters="sRGB">
+  <feColorMatrix type="matrix" values="0.567 0.433 0 0 0  0.558 0.442 0 0 0  0 0.242 0.758 0 0  0 0 0 1 0"/></filter>
+ <filter id="fDeut" color-interpolation-filters="sRGB">
+  <feColorMatrix type="matrix" values="0.625 0.375 0 0 0  0.7 0.3 0 0 0  0 0.3 0.7 0 0  0 0 0 1 0"/></filter>
+ <filter id="fTrit" color-interpolation-filters="sRGB">
+  <feColorMatrix type="matrix" values="0.95 0.05 0 0 0  0 0.433 0.567 0 0  0 0.475 0.525 0 0  0 0 0 1 0"/></filter>
+</defs></svg>
 <body>
 <div id="scene"></div>
 <div id="hud">
@@ -180,6 +200,8 @@ body.lefthand #joy{left:auto;right:14px}
 🏦 <b>Banque</b> : l'argent sur toi peut être saisi, celui qui est déposé non. Le coffre-fort va plus loin.<br>
 🚓 <b>Commissariat</b> : paie pour faire baisser la recherche, acheter tes papiers (plus de fouille aux barrades) ou te protéger quelques jours.<br>
 🚇 <b>Métro</b> (icônes bleues sur la carte) : 40 € et 20 minutes pour traverser la ville. Les quartiers fermés demandent de la réputation.<br>
+🏚️ <b>La Cité</b> (5★) : tours HLM, cours et laverie — risquée mais très rentable. Passée 7★, Les Quais s'ouvrent.<br>
+📌 <b>Contrats</b> (panneau près du métro du Bloc) : 3 commandes en cours, un délai, une prime et de la réputation. Livré à temps tu gagnes ; en retard tu perds 1,5★.<br>
 ⚙️ <b>Réglages</b> : volumes séparés, qualité auto/éco/standard/élevé, champ de vision, contraste renforcé, taille du texte, interface gauchère, export/restauration de la sauvegarde.<br>
 ⏩ <b>Vitesse ×1/×2/×4</b> : un jour de jeu dure ~120 s en ×1. Accélère pour l'argent ou les événements.<br>📊 <b>Statistiques</b> (pause) : revenus/h, g/h, taux de deals discrets, pertes.<br>💎 <b>Client VIP</b> : paie ×2 mais veut 8-11 g. 🚓 <b>Contrôle</b> : si tu portes du stock, ils en saisissent. 🌃 <b>Nuit de spawn</b> : clients affamés + flics.<br>🏅 <b>Carrière</b> (barre dorée) : 6 rangs. Chaque rang paie plus mais attire plus de flics. Le rang <b>Légende</b> = fin de partie.<br>🌱 <b>Graines en stock fini</b> (boutique 🌱) : tu commences avec 3, il faut en racheter.<br>🧰 <b>Planque limitée</b> (capacité affichée) : dépassement = stock perdu. Agrandis-la.<br>🆘 <b>Secours d'urgence</b> au planque : 25 € contre de l'herbe, ça évite la faillite.<br>💰 +20g sur toi = plus visible. Pris = -30% € et moitié du stock sur toi saisie.<button id="helpClose" class="bigbtn" style="background:#3ddc74">Compris !</button></div>
 
@@ -198,6 +220,12 @@ body.lefthand #joy{left:auto;right:14px}
   <button class="bigbtn" id="pWipe" style="background:#5a5a10;color:#fff">🗑 Effacer les mutations</button>
   <button class="bigbtn" id="pHelp" style="background:#223;color:#fff">❓ Aide</button>
   <button class="bigbtn" id="pReset" style="background:#5a1020;color:#fff">🗑 Recommencer la partie</button>
+</div></div>
+
+<div class="sheet" id="progSheet"><div class="card">
+  <h2>🏅 Carrière &amp; Progression</h2>
+  <div id="progBody"></div>
+  <button class="bigbtn" id="progClose" style="background:#223">Fermer</button>
 </div></div>
 
 <div class="sheet" id="optionsSheet"><div class="card">
@@ -340,6 +368,14 @@ body.lefthand #joy{left:auto;right:14px}
   <button class="bigbtn" id="metroClose" style="background:#223">Fermer</button>
 </div></div>
 
+<div class="sheet" id="jobSheet"><div class="card">
+  <h2>📌 Le Panneau des Contrats</h2>
+  <p class="sub">Des commandes nommées, un délai, un prime. Manque le délai et tu perds la face.
+  <br><span id="jobInfo"></span></p>
+  <div id="jobList"></div>
+  <button class="bigbtn" id="jobClose" style="background:#223">Fermer</button>
+</div></div>
+
 <div id="busted"><div class="in"><div style="font-size:44px">🚨</div><h2>INTERPELLÉ !</h2><p id="bustTxt" style="line-height:1.5"></p></div></div>
 <div id="tuto"><b id="tutoTitle"></b><div id="tutoTxt"></div><div style="display:flex;gap:8px"><button id="tutoNext" style="flex:1;background:#3ddc74">Suivant ➜</button><button id="tutoSkip" style="background:#2a3a30;color:#fff">Passer</button></div></div>
 <div id="toasts"></div>
@@ -433,6 +469,7 @@ const DISTRICTS=[
  {id:'bloc',  nom:'Le Bloc',   x0:-78,x1:70, z0:-66,z1:66,  risk:1,   rep:0,col:0x1a2630},
  {id:'marche',nom:'Le Marché', x0:86, x1:186,z0:-58,z1:58,  risk:1.45,rep:3,col:0x2a2418},
  {id:'quais', nom:'Les Quais', x0:-62,x1:62, z0:84, z1:184, risk:1.9, rep:7,col:0x14242e},
+ {id:'cite',  nom:'La Cité',   x0:-206,x1:-92,z0:-64,z1:64, risk:1.6, rep:5,col:0x22201a},
 ];
 // un quartier verrouillé n'existe pas encore pour le joueur : les barrières
 // l'empêchent physiquement d'y entrer, et districtAt ne le reconnaît pas.
@@ -495,7 +532,8 @@ veh:{},                // véhicules achetés : {id:{own,fuel,x,z,ry}}
 /* --- intérieurs : Mercato et Douane --- */
 coat:false,            // capuche : les flics te voient de moins loin
 sealed:false,          // scellés customs : saisie réduite de moitié
-bond:0,marketMap:false,tipBought:false,
+bond:0,marketMap:false,tipBought:false,jobs:null,jobSeq:0,
+daily:null,week:null,
 bank:0,vault:false,papers:false,filed:false,charmT:0,
 crookCd:0,             // délai avant de pouvoir corrompre un flic
 roadblockT:0,searchT:0,
@@ -964,10 +1002,12 @@ function applySky(){const f=daylight();
  const hh=Math.floor(S.hour),mm2=Math.floor((S.hour-hh)*60);
  $('clock').textContent=(f>.5?'☀️':'🌙')+' J'+S.dayN+' '+String(hh).padStart(2,'0')+':'+String(mm2).padStart(2,'0');}
 const homeGlow=new THREE.PointLight(0xb47bff,30,22,1.8);homeGlow.position.set(-8,3,-10);scene.add(homeGlow);
+/* budget de lumières — la déclaration doit précéder la première lampe */
+const managedLights=[];
 /* éclairage public : quelques sources chaudes la nuit (les cônes visuels ne sont qu'un fake) */
 const streetLights=[[-20,7.4,2.1],[13.4,9,2.0],[-6,12.6,1.9],[30,7.4,2.1],[44,12.6,2.0],[-34,7.6,1.8]];
 const publicLights=streetLights.map(([x,z,i])=>{const L=new THREE.PointLight(0xffcf8f,0,20,1.7);
- L.position.set(x,5.1,z);scene.add(L);return L;});
+ L.position.set(x,5.1,z);scene.add(L);return budgetLight(L,40);});
 const staGlow=new THREE.PointLight(0x3a7bff,40,26,1.8);staGlow.position.set(30,4,25);scene.add(staGlow);
 /* lune + skyline */
 function glowTex(){const c=document.createElement('canvas');c.width=c.height=64;const x=c.getContext('2d');const g=x.createRadialGradient(32,32,2,32,32,30);g.addColorStop(0,'rgba(255,255,255,1)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,64,64);return new THREE.CanvasTexture(c);}
@@ -1423,13 +1463,15 @@ function buildHall(o){
  const mk=marker(o.vic,'#ffd166');mk.position.set(cx,2.7,cz-1.5);g.add(mk);
  // plafonniers + halo néon : l'intérieur est éclairé, sinon c'est un trou noir
  const lampM=new THREE.MeshStandardMaterial({color:0xfff4d8,emissive:o.neon,emissiveIntensity:1.6,roughness:.4});
- const nL=4;
+ // 2 plafonniers lumineux + 1 remplissage suffisent : au-delà, on alourdit
+ // le shader sans rien gagner visuellement une fois l'intérieur éclairé.
+ const nL=2;
  for(let i=0;i<nL;i++){const l=new THREE.Mesh(new THREE.BoxGeometry(1.7,.14,.45),lampM);
-  l.position.set(-o.w/2+2+i*(o.w-4)/(nL-1),H-.45,(i%2?1:-1)*o.d*.2);g.add(l);
-  const pl=new THREE.PointLight(o.neon,2.6,26,2);pl.position.set(l.position.x,H-1.3,l.position.z);g.add(pl);}
- // une lumière douce au ras du sol : sinon le fond de la halle reste noir
- const fillIn=new THREE.PointLight(0xfff0d0,1.5,o.w*1.5,1.6);
- fillIn.position.set(0,2.2,o.d/2-2);g.add(fillIn);
+  l.position.set(-o.w/4+i*(o.w/2),H-.45,0);g.add(l);
+  const pl=new THREE.PointLight(o.neon,3.2,30,2);
+  pl.position.set(l.position.x,H-1.3,0);g.add(pl);budgetLight(pl,46);}
+ const fillIn=new THREE.PointLight(0xfff0d0,1.8,o.w*1.5,1.6);
+ fillIn.position.set(0,2.4,0);g.add(fillIn);budgetLight(fillIn,46);
  // halo au sol sous chaque plafonnier, pour lire l'espace même de loin
  const poolT=glowTex();
  for(let i=0;i<nL;i++){
@@ -1722,8 +1764,81 @@ const barrierSigns=[];
 barrierSigns.push(barrier(78,-40,.8,60,'MARCHÉ'));barrierSigns.push(barrier(78,40,.8,60,'MARCHÉ'));
 // Bloc -> Quais : mur en z=75, brèche en x∈[-9,9]
 barrierSigns.push(barrier(-45,75,72,.8,'QUAIS'));barrierSigns.push(barrier(45,75,72,.8,'QUAIS'));
+// Bloc -> Cité : mur en x=-85, brèche sur l'avenue z∈[-9,9]
+barrierSigns.push(barrier(-85,-40,.8,60,'CITÉ'));barrierSigns.push(barrier(-85,40,.8,60,'CITÉ'));
 {const big=new THREE.Mesh(new THREE.PlaneGeometry(470,470),new THREE.MeshStandardMaterial({color:0x0c1017,roughness:1}));
  big.rotation.x=-Math.PI/2;big.position.y=-.012;scene.add(big);}
+/* ============================================================
+   💡 BUDGET DE LUMIÈRES
+   En rendu direct, le shader de chaque matériau boucle sur
+   TOUTES les lumières à chaque pixel. 38 PointLight = 38
+   évaluations par fragment : c'est ce qui faisait tomber le jeu
+   en mode Éco dès le démarrage. On n'en garde qu'un petit
+   nombre, les plus proches du joueur ; les autres sont éteintes.
+   ============================================================ */
+const LIGHT_BUDGET={high:10,std:8,eco:5};
+/* enregistre une lumière comme "éligible" au budget */
+function budgetLight(L,dist){
+ L.userData.cullDist=dist||34;
+ managedLights.push(L);return L;}
+/* called chaque frame : on trie par distance et on allume les N plus proches */
+function lightBudgetTick(){
+ const cap=LIGHT_BUDGET[qualityLevel()]||8;
+ const px=player.pos.x,pz=player.pos.z;
+ let n=0;
+ // d'abord les lumières déjà allumées : on les réévalue
+ for(const L of managedLights){
+  L.getWorldPosition(_lv);
+  const dx=_lv.x-px, dz=_lv.z-pz;
+  const d2=dx*dx+dz*dz;
+  const want=d2<L.userData.cullDist*L.userData.cullDist;
+  if(want)n++;
+  L.userData.d2=d2;L.userData.want=want;}
+ // si on dépasse le budget, on éteint les plus lointaines
+ if(n>cap){
+  const act=managedLights.filter(L=>L.userData.want).sort((a,b)=>a.userData.d2-b.userData.d2);
+  for(let i=cap;i<act.length;i++)act[i].userData.want=false;}
+ for(const L of managedLights){
+  const on=L.userData.want&&L.visible;
+  if(L.userData.on!==on){L.userData.on=on;L.visible=on;}}
+}
+const _lv=new THREE.Vector3();
+
+/* ============================================================
+   🔍 LOD PAR DISTANCE
+   2 800 maillages font moins de 60 cm (poubelles, débris, vis,
+   détails de façade). Ils sont invisibles au-delà de quelques
+   mètres mais coûteaun draw call chacun. On les range dans une
+   liste unique et on n'affiche que ceux qui sont proches.
+   ============================================================ */
+const LOD_SMALL=[];      // petits objets subjectés à la distance
+const _lb=new THREE.Box3(), _lv2=new THREE.Vector3();
+/* collecte à froid, après la construction du monde */
+function collectLOD(){
+ LOD_SMALL.length=0;
+ scene.traverse(o=>{
+  if(!o.isMesh||!o.geometry||o.isInstancedMesh)return;
+  if(!o.geometry.boundingSphere)o.geometry.computeBoundingSphere();
+  const r=(o.geometry.boundingSphere?o.geometry.boundingSphere.radius:0)*Math.max(o.scale.x,o.scale.y,o.scale.z);
+  // 0,6 m : poubelle, débris, vis, lampe, affiche. Assez petit pour être jeté au loin.
+  if(r<0.6){
+   const parent=o.parent;
+   LOD_SMALL.push({mesh:o,ox:o.position.x,oy:o.position.y,oz:o.position.z,
+    parent,px:parent.position.x,py:parent.position.y,pz:parent.position.z});}});
+}
+/* chaque frame : n'affiche que les petits objets à portée */
+function lodTick(){
+ const px=player.pos.x,pz=player.pos.z,py=player.pos.y;
+ // budget selon la qualité : plus on est économe, plus on coupe loin
+ const far=LOD_SMALL.length?(qualityLevel()==='eco'?12:18):0;
+ for(let i=0;i<LOD_SMALL.length;i++){
+  const it=LOD_SMALL[i],m=it.mesh;
+  const x=it.px+it.ox, z=it.pz+it.oz;
+  const dx=x-px, dz=z-pz;
+  const d2=dx*dx+dz*dz;
+  const want=d2<far*far;
+  if(m.visible!==want)m.visible=want;}}
+
 /* ---------- MARCHÉ ---------- */
 {
  const rd=new THREE.Mesh(new THREE.PlaneGeometry(116,7),new THREE.MeshStandardMaterial({map:tex(ASPHALT_TEX,20,2),roughnessMap:roadRough,roughness:.9,metalness:.06,color:0xffffff}));
@@ -1801,7 +1916,7 @@ function marketLife(){
 }
 /* ---------- QUAIS ---------- */
 {
- /* --- l'eau : normal map procédurale + houle轻 dans les vertices --- */
+ /* --- l'eau : normal map procédurale + houle dans les vertices --- */
  const waterN=waterNormalTex();
  const water=new THREE.Mesh(new THREE.PlaneGeometry(190,112,60,34),waterMaterial(waterN));
  water.rotation.x=-Math.PI/2;water.position.set(0,-.5,210);  // commence pile où finit la terre
@@ -1830,7 +1945,7 @@ water.receiveShadow=false;water.renderOrder=-1;
 /* ============================================================
    LES QUAIS : eau vivante, grue, conteneurs, bateaux, mouillages
    ============================================================ */
-/* foule :客户端 du marché et docker (appelée à l'init) */
+/* foule : clients du marché et docker (appelée à l'init) */
 function quayCrowd(){
  const lane1=[],lane2=[];
  for(let i=0;i<8;i++){lane1.push([98+i*16,-5.2]);lane2.push([106+i*16,5.2]);}
@@ -2186,6 +2301,77 @@ function alleyProps(x,z){const g=new THREE.Group();g.position.set(x,0,z);
   bag.scale.y=.8;bag.position.set(rnd(-1.6,1.6),.28,rnd(-1.2,1.2));g.add(bag);}
  g.traverse(o=>{if(o.isMesh){o.castShadow=o.receiveShadow=true;}});scene.add(g);solid(x,z,3.4,2.6);}
 alleyProps(-38,-6);alleyProps(42,-14);
+/* ============================================================
+   🏚️ LA CITÉ — tours HLM, cours ouvertes, linge aux fenêtres
+   Un quartierdense : tours hautes, balcons, et une vie de cour.
+   ============================================================ */
+/* une tour : barre d'étages + balcons + antenne + pylône */
+function hlmTower(x,z,w,d,h,ci){
+ const g=new THREE.Group();g.position.set(x,0,z);
+ const ci2=ci%FACADE.length;
+ const body=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),
+  new THREE.MeshStandardMaterial({map:tex(FACADE[ci2],Math.max(2,w/4),Math.max(2,h/3)),
+   color:0xffffff,roughness:.94}));
+ body.position.y=h/2;body.castShadow=body.receiveShadow=true;g.add(body);
+ // soubassement béton
+ const base=new THREE.Mesh(new THREE.BoxGeometry(w+.3,1,d+.3),
+  new THREE.MeshStandardMaterial({map:tex(concreteTex(),w/3,1),color:0xe8e4dc,roughness:.96}));
+ base.position.y=.5;g.add(base);
+ // corniche
+ const trim=new THREE.Mesh(new THREE.BoxGeometry(w+.5,.5,d+.5),
+  new THREE.MeshStandardMaterial({color:0x2a2e38,roughness:.9}));
+ trim.position.y=h-.4;trim.castShadow=true;g.add(trim);
+ // balcons empilés sur deux faces + linge
+ const balM=new THREE.MeshStandardMaterial({map:tex(concreteTex(),1,1),color:0xd8d4cc,roughness:.95});
+ const railM=new THREE.MeshStandardMaterial({color:0x4a5058,roughness:.6,metalness:.5});
+ for(let fy=3.4;fy<h-2;fy+=3.2){
+  for(const sz of [d/2+.6,-d/2-.6]){
+   const bal=new THREE.Mesh(new THREE.BoxGeometry(w*.7,.16,1.2),balM);
+   bal.position.set(0,fy,sz);bal.castShadow=true;g.add(bal);
+   const rail=new THREE.Mesh(new THREE.BoxGeometry(w*.7,.7,.08),railM);
+   rail.position.set(0,fy+.4,sz+(sz>0?.5:-.5));g.add(rail);
+   // linge qui sèche
+   if(Math.random()<.5){
+    const col=[0xd8d8d8,0xc8d8e8,0xe8d0c0,0xd8e0c8][(Math.random()*4)|0];
+    const cl=new THREE.Mesh(new THREE.PlaneGeometry(.5,.7),
+     new THREE.MeshStandardMaterial({color:col,roughness:1,side:THREE.DoubleSide}));
+    cl.position.set(rnd(-w*.3,w*.3),fy+.6,sz+(sz>0?.55:-.55));g.add(cl);}
+  }}
+ // antennes sur le toit
+ const ant=new THREE.Mesh(new THREE.CylinderGeometry(.05,.05,rnd(1.5,3),5),railM);
+ ant.position.set(rnd(-w*.3,w*.3),h+1,0);g.add(ant);
+ roofDetail(g,w,d,h,ci);
+ g.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true;}});
+ scene.add(g);
+ solid(x,z,w,d);
+ return g;}
+/* on décale les tours pour laisser passer les avenues */
+[[-118,-42,16,12,20,0],[-146,-44,14,12,26,2],[-180,-40,16,12,17,1],
+ [-120,44,16,12,18,3],[-152,46,14,12,24,1],[-186,42,16,12,20,2],
+ [-176,-6,18,14,16,0],[-118,-8,16,14,22,3],[-186,22,16,12,19,1],
+ [-124,20,14,12,15,2],[-158,18,16,12,21,0],[-190,-20,14,12,18,3]]
+ .forEach(([x,z,w,d,h,ci])=>hlmTower(x,z,w,d,h,ci));
+/* petites pavillons entre les tours (commerces de proximité) */
+[[-130,10,'TABAC'],[-160,-24,'ÉPICERIE'],[-146,20,'LAVERIE'],[-198,-2,'PIZZA']]
+ .forEach(([x,z,t],i)=>building(x,z,10,9,7,i,[t,i%2?'#ffd166':'#3ddc74'],true));
+/* cours :aires de jeux, bancs, lampadaires entre les tours */
+[[-140,0],[-166,-14],[-132,30],[-176,10]].forEach(([x,z])=>{
+ const court=new THREE.Mesh(new THREE.PlaneGeometry(18,12),
+  new THREE.MeshStandardMaterial({map:tex(concreteTex(),6,4),color:0xb8b0a0,roughness:.96}));
+ court.rotation.x=-Math.PI/2;court.position.set(x,.02,z);court.receiveShadow=true;scene.add(court);
+ lamp(x-6,z-4);bench(x+2,z+3);bin(x+5,z-3);
+ // terrain de jeu : terrain de basket au sol
+ const courtM=new THREE.Mesh(new THREE.PlaneGeometry(6,4),
+  new THREE.MeshStandardMaterial({color:0x8a5a3a,roughness:.95}));
+ courtM.rotation.x=-Math.PI/2;courtM.position.set(x-2,.04,z);courtM.receiveShadow=true;scene.add(courtM);
+ for(const sz of [-2,2]){
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(.07,.07,3.4,6),metalM);
+  pole.position.set(x-2+sz*1.2,1.7,z);pole.castShadow=true;scene.add(pole);}});
+/* lampadaires le long de l'avenue de la Cité */
+[[-100,4],[-110,4],[-130,4],[-160,4],[-180,4],[-195,4],[-100,12],[-120,12],[-150,12],[-175,12],[-195,12]]
+ .forEach(([x,z])=>lamp(x,z));
+
+
 /* grilles d'aération et plaques de daltoff : le détail au sol */
 for(let i=0;i<14;i++){const v=new THREE.Mesh(new THREE.BoxGeometry(.8,.04,.45),metalM);
  v.position.set(rnd(-60,60),.162,Math.random()<.5?6.6:11.4);v.receiveShadow=true;scene.add(v);}
@@ -2193,8 +2379,10 @@ for(let i=0;i<14;i++){const v=new THREE.Mesh(new THREE.BoxGeometry(.8,.04,.45),m
 /* ============================================================
    CIRCULATION & FOULE
    Les voitures roulent vraiment sur les voies, s'arrêtent au feu,
+   klaxonnent ; les piétons marchent le long des trLes voitures roulent vraiment sur les voies, s'arrêtent au feu,
    klaxonnent ; les piétons marchent le long des trottoirs, entrent
-   dans les boutique�� et se dérobent quand il y a du、热ur.
+   dans les boutiques et se dérobent quand il y a du bruit.
+   ==
    ============================================================ */
 const CARCOL=[0x8a2b34,0x2c4a7a,0xb8b2a6,0x2f2f35,0x4a5a46,0x6a4a2a,0x2b2f3a,0x7a6a2a];
 const glassM=new THREE.MeshStandardMaterial({color:0x0d141f,roughness:.15,metalness:.6,transparent:true,opacity:.86});
@@ -2276,6 +2464,13 @@ const LANES=[
  {pts:[[16.9,-70],[16.9,70]],one:true},
  {pts:[[14.1,70],[14.1,-70]],one:true},
  {pts:[[17.9,70],[17.9,-70]],one:true},
+ // liaison Le Bloc → La Cité, puis avenues de la Cité
+ {pts:[[-70,8.1],[-206,8.1]],one:true},
+ {pts:[[-70,9.9],[-206,9.9]],one:true},
+ {pts:[[-206,7.2],[-70,7.2]],one:true},
+ {pts:[[-206,10.8],[-70,10.8]],one:true},
+ {pts:[[-151.1,-64],[-151.1,64]],one:true},
+ {pts:[[-149.1,64],[-149.1,-64]],one:true},
 ];
 const CARS=[];
 function spawnTraffic(){
@@ -2525,6 +2720,7 @@ const bike={mesh:new THREE.Group(),pos:new THREE.Vector3(S.bike.x,0,S.bike.z)};
 const SPOTS_B=[[3,5],[-14,16],[22,5],[-28,24],[36,28],[-38,8]];
 const SPOTS_M=[[104,4],[130,-18],[158,10],[120,34],[166,-38],[144,50]];
 const SPOTS_Q=[[-24,116],[24,116],[-16,146],[18,150],[0,132],[34,176]];
+const SPOTS_C=[[-130,6],[-176,6],[-118,-40],[-180,-38],[-150,44],[-160,-6]];
 const CTYPES=[{e:'🎉',n:'Fêtard',gen:[1.2,1.5],pat:25},{e:'🤝',n:'Régulier',gen:[1.0,1.15],pat:60},{e:'😟',n:'Méfiant',gen:[.85,1.0],pat:40}];
 /* rivaux : deux styles de jeu opposés
    Zoé  : brade systématiquement, gros volumes, attire la police
@@ -2537,6 +2733,7 @@ const clients=[];const NCOL=[0xc9a06a,0x7fb8ff,0xff9dc8,0xd9c23a,0x9d6bff,0xff8c
 function openSpots(){const l=[SPOTS_B];
  if(S.rep>=3)l.push(SPOTS_M);
  if(S.rep>=7)l.push(SPOTS_Q);
+ if(S.rep>=5)l.push(SPOTS_C);
  return l;}
 function pickSpot(){const l=openSpots(),s=l[Math.floor(Math.random()*l.length)][Math.floor(Math.random()*l[0].length)];
  return [s[0]+(Math.random()-.5)*4,s[1]+(Math.random()-.5)*4];}
@@ -2662,7 +2859,7 @@ $('btnSneak').onclick=()=>{player.sneak=!player.sneak;$('btnSneak').classList.to
 $('legalX').onclick=()=>$('legal').remove();
 /* ouvrir/fermer un panneau — point d'entrée unique, ferme tous les autres */
 function switchSheet(id){
- ['growSheet','sellSheet','safeSheet','shopSheet','pauseSheet','winSheet','labSheet','statsSheet','optionsSheet','marcheSheet','douaneSheet','bankSheet','polSheet','metroSheet'].forEach(s=>{const e=$(s);if(e)e.classList.remove('open');});
+ ['growSheet','sellSheet','safeSheet','shopSheet','pauseSheet','winSheet','labSheet','statsSheet','optionsSheet','marcheSheet','douaneSheet','bankSheet','polSheet','metroSheet','jobSheet','progSheet'].forEach(s=>{const e=$(s);if(e)e.classList.remove('open');});
  if(id===''||id==='sellSheet')bluff=null;
  if(id&&$(id))$(id).classList.add('open');
  if(id==='shopSheet')renderShop();
@@ -2949,12 +3146,12 @@ $('pWipe').onclick=()=>{if(!S.genomes.length){toast('Aucune souche à effacer','
  if(confirm('Effacer toutes tes souches mutantes ?')){S.genomes=[];S.muts=0;toast('🧬 Labo vidé');save();renderLab();syncHUD();}};
 $('btnSpeed').onclick=()=>{vib(8);setSpeed(S.timeScale>=4?1:S.timeScale*2);};
 $('btnLab').onclick=()=>{vib(8);switchSheet('labSheet');};
-$('rankbar').onclick=()=>{vib(8);careerInfo();};
+$('rankbar').onclick=()=>{vib(8);openProg();};
 $('helpBtn').onclick=()=>$('helpCard').classList.toggle('open');$('helpClose').onclick=()=>$('helpCard').classList.remove('open');
 // le bouton carrière n'existe que sur mobile large : le panneau de carrière est
 // accessible via la barre dorée, qui est toujours cliquable
 const careerBtn=$('btnCareer');
-if(careerBtn)careerBtn.onclick=()=>{vib(8);careerInfo();};
+if(careerBtn)careerBtn.onclick=()=>{vib(8);openProg();};
 /* pause */
 function togglePause(){paused=!paused;$('pauseSheet').classList.toggle('open',paused);if(paused){sirenStop();}syncPause();}
 $('pauseBtn').onclick=togglePause;$('pResume').onclick=togglePause;
@@ -3138,7 +3335,7 @@ function delivTick(dt){
 let nearClient=null,nearGarden=false,nearBike=false,nearSafe=false,alarmT=0,chaseTime=0,wantedT=0;
 function dist2(ax,az,bx,bz){return Math.hypot(ax-bx,az-bz);}
 function nearestCop(){let d=1e9;for(const c of cops)d=Math.min(d,dist2(player.pos.x,player.pos.z,c.pos.x,c.pos.z));return d;}
-let nearHall=null,nearStationRef=null;
+let nearHall=null,nearStationRef=null,nearJob=null;
 function updateInteract(){
  nearClient=null;nearGarden=false;nearBike=false;nearSafe=false;
  // l'invite doit toujours rester au-dessus du bloc de boutons, sinon elle est illisible
@@ -3152,6 +3349,7 @@ function updateInteract(){
  if(!player.riding&&dist2(player.pos.x,player.pos.z,bike.pos.x,bike.pos.z)<2.6)nearBike=true;
  if(!player.riding&&!nearBike&&nearVehData())nearBike=true;
  nearStationRef=nearStation();
+ nearJob=Math.hypot(player.pos.x-jobBoard.x,player.pos.z-jobBoard.z)<3.6;
  if(dist2(player.pos.x,player.pos.z,9.5,-9)<3.4)nearSafe=true;
  // comptoirs des deux halls : on interagit seulement à l'intérieur
  nearHall=null;
@@ -3176,6 +3374,9 @@ function updateInteract(){
     ' • bruit ×'+v.noise.toFixed(2)+(v.fuel>0?' • réservoir '+Math.round(vehFuel(v.id)*100)+'%':'');}
  else if(nearGarden){btn.style.display='block';btn.textContent='🌿 Culture';pr.style.display='block';pr.textContent='🌿 Ta chambre de culture : récolte et replante !';}
  else if(nearSafe){btn.style.display='block';btn.textContent='🏠 Planque';pr.style.display='block';pr.textContent='🏠 Planque : stock à l\'abri + améliorations';}
+ else if(nearJob){btn.style.display='block';btn.textContent='📌 Contrats';
+  pr.style.display='block';
+  pr.textContent='📌 Des commandes à livrer. '+activeJobs().filter(c=>!c.done&&!c.failed).length+' en cours.';}
  else if(nearStationRef){const st=nearStationRef;const d=DISTRICTS.find(x=>x.id===st.id);
   const locked=d&&S.rep<d.rep;
   btn.style.display='block';btn.textContent='🚇 Métro';
@@ -3199,6 +3400,7 @@ $('btnAct').onclick=()=>{vib(10);sndBlip(600);
   if(v.id==='velo'){player.riding=true;player.mount='velo';}
   else mountVeh(v.id);
   S.rode=true;missionCheck();toast(v.ico+' '+v.nom+' — ⚡ pour accélérer');sndBlip(700);}
+ else if(nearJob)openJobs();
  else if(nearStationRef)openMetro();
  else if(nearGarden)openGrow();
  else if(nearHall){if(nearHall===hallMarket)openMarche();
@@ -3262,6 +3464,7 @@ const STATIONS=[
  {id:'bloc',  nom:'Le Bloc',   x:-20,z:14, col:'#3ddc74',ico:'🏚️'},
  {id:'marche',nom:'Le Marché', x:120,z:14, col:'#ffd166',ico:'🍜'},
  {id:'quais', nom:'Les Quais', x:12,z:96,  col:'#4cc3ff',ico:'⚓'},
+ {id:'cite',  nom:'La Cité',   x:-120,z:14, col:'#b892ff',ico:'🏢',rep:5},
 ];
 const METRO_PRICE=40, METRO_MIN=1/3;   // 20 minutes de jeu ≈ 1/3 de jour
 /* abri de métro : petit abri avecturnstile,ymm verticals et un panneau */
@@ -3291,7 +3494,7 @@ function metroStop(st){
  const lamp=new THREE.Mesh(new THREE.BoxGeometry(2.4,.1,.3),
   new THREE.MeshStandardMaterial({color:0xfff4d8,emissive:0xa8d8ff,emissiveIntensity:1.2}));
  lamp.position.set(0,2.85,0);g.add(lamp);
- const pl=new THREE.PointLight(0xa8d8ff,1.6,14,2);pl.position.set(0,2.6,0);g.add(pl);
+ const pl=new THREE.PointLight(0xa8d8ff,1.6,14,2);pl.position.set(0,2.6,0);g.add(pl);budgetLight(pl,36);
  st.mesh=g;st.lamp=lamp.material;st.sign=sign.material;
  st.pool=new THREE.Mesh(new THREE.CircleGeometry(3.4,20),
   new THREE.MeshBasicMaterial({map:glowTex(),color:st.col,transparent:true,opacity:.22,depthWrite:false}));
@@ -3310,11 +3513,12 @@ function renderMetro(){
  $('metroPrice').textContent=METRO_PRICE+' €';
  $('metroList').innerHTML=STATIONS.map(st=>{
   const d=DISTRICTS.find(x=>x.id===st.id);
-  const locked=d&&S.rep<d.rep;
+  const need=st.rep!==undefined?st.rep:(d?d.rep:0);
+  const locked=S.rep<need;
   const here=cur===st;
   const ok=!locked&&!here&&S.money>=METRO_PRICE;
   const desc=locked
-   ?'🔒 fermé : il faut '+d.rep+' ★ de réputation (tu en as '+S.rep+')'
+   ?'🔒 fermé : il faut '+need+' ★ de réputation (tu en as '+S.rep+')'
    :here?'📍 tu es ici'
    :'🕐 +20 min • '+d.nom+(d.risk>1?' • risque ×'+d.risk:'');
   return '<div style="display:flex;gap:8px;align-items:center;margin:7px 0">'+
@@ -3334,7 +3538,8 @@ function openMetro(){renderMetro();$('metroSheet').classList.add('open');sndBlip
 $('metroClose').onclick=()=>$('metroSheet').classList.remove('open');
 function takeMetro(st){
  const d=DISTRICTS.find(x=>x.id===st.id);
- if(d&&S.rep<d.rep){toast('🔒 '+d.nom+' est fermé (réputation '+(S.rep)+'/'+d.rep+')','warn');return;}
+ const need=st.rep!==undefined?st.rep:(d?d.rep:0);
+ if(S.rep<need){toast('🔒 '+st.nom+' est fermé (réputation '+(S.rep)+'/'+need+')','warn');return;}
  if(nearStation()===st){toast('Tu es déjà là','warn');return;}
  if(S.money<METRO_PRICE){toast('💰 '+METRO_PRICE+' € requis','warn');return;}
  S.money-=METRO_PRICE;
@@ -3345,6 +3550,122 @@ function takeMetro(st){
  toast('🚇 '+st.ico+' '+st.nom+' — '+Math.round(METRO_PRICE/2*60)+' min de trajet','gold',2800);
  sndCash();save();syncHUD();
  $('metroSheet').classList.remove('open');missionCheck();}
+
+/* ============================================================
+   📌 CONTRATS — le panneau qui donne un but au jeu
+   Une commande = une quantité, un délai en heures de jeu,
+   un prime et un quartier. Tenir le délai donne argent + réputation.
+   ============================================================ */
+const JOB_MAX=3;
+let jobBoard=null,jobNear=null;
+/* le panneau : un panneau de bois avec des affiches et un toit */
+function buildJobBoard(){
+ const x=-27,z=14;
+ const g=new THREE.Group();g.position.set(x,0,z);g.rotation.y=.35;scene.add(g);
+ const wood=new THREE.MeshStandardMaterial({map:tex(concreteTex(),2,2),color:0x8a6a4a,roughness:.95});
+ const board=new THREE.Mesh(new THREE.BoxGeometry(4.4,2.6,.22),wood);
+ board.position.y=2.4;board.castShadow=board.receiveShadow=true;g.add(board);
+ for(const sx of [-1.9,1.9]){
+  const leg=new THREE.Mesh(new THREE.BoxGeometry(.24,1.4,.24),wood);
+  leg.position.set(sx,.7,0);leg.castShadow=true;g.add(leg);
+  const leg2=leg.clone();leg2.position.z=-.8;g.add(leg2);}
+ const roof=new THREE.Mesh(new THREE.BoxGeometry(5,.16,1.6),
+  new THREE.MeshStandardMaterial({color:0x6b4a34,roughness:.7}));
+ roof.position.set(0,3.85,0);roof.rotation.x=.12;roof.castShadow=true;g.add(roof);
+ // affiches colorées (les contrats)
+ const papers=[[0xff6fb5,'PAID'],['#ffd166','SOON'],['#4cc3ff','NEED']];
+ papers.forEach((pc,i)=>{
+  const p=new THREE.Mesh(new THREE.PlaneGeometry(1,1.2),
+   new THREE.MeshStandardMaterial({color:pc[0],roughness:.95}));
+  p.position.set(-1.3+i*1.3,2.4,.13);g.add(p);
+  const t=new THREE.Mesh(new THREE.PlaneGeometry(.9,.3),
+   new THREE.MeshBasicMaterial({map:neonTex(pc[1],'#1a1a1f'),transparent:true,depthWrite:false}));
+  t.position.set(-1.3+i*1.3,2.4,.15);g.add(t);});
+ const sign=new THREE.Mesh(new THREE.PlaneGeometry(3.6,.8),
+  new THREE.MeshBasicMaterial({map:neonTex('CONTRATS','#ffd166'),transparent:true,depthWrite:false}));
+ sign.position.set(0,3.3,.14);g.add(sign);
+ jobBoard={x,z,mesh:g};solid(x,z,4.6,1.6);
+ return jobBoard;}
+buildJobBoard();refreshJobs();
+/* génération d'un contrat */
+function makeJob(){
+ const dist=['bloc','marche','quais'][Math.random()<.45?0:(Math.random()<.6?1:2)];
+ const q=Math.round(5+Math.random()*10+ (dist==='quais'?8:0));
+ const unit=Math.round(priceMul(districtAt(dist==='bloc'?0:dist==='marche'?130:20,
+  dist==='marche'?0:dist==='quais'?140:0),12));
+ const pay=Math.round(q*unit*1.35);
+ const hours=[6,8,12][Math.floor(Math.random()*3)];
+ return{id:'j'+(S.jobSeq=(S.jobSeq|0)+1),dist,q,pay,hours,left:hours,
+  label:(dist==='marche'?'Le Marché':dist==='quais'?'Les Quais':'Le Bloc')+' — '+q+'g'};}
+function activeJobs(){return S.jobs||(S.jobs=[]);}
+function refreshJobs(force){
+ const j=activeJobs();
+ while(j.length<JOB_MAX)j.push(makeJob());
+ if(force)j.length=0,refreshJobs();}
+/* les délais avancent avec l'horloge du jeu (une journée = 240 s réelles) */
+function jobTick(dt){
+ const j=activeJobs();let dirty=false;
+ const dh=dt*(24/240);
+ for(const c of j){
+  if(c.done||c.failed)continue;
+  c.left-=dh;
+  if(c.left<=0){failJob(c.id);dirty=true;}}
+ if(jobRefreshT>0){jobRefreshT-=dt;if(jobRefreshT<=0)refreshBoard();}
+ if(dirty)renderJobsIfOpen();}
+/* livraison : on donne la quantité depuis le stock sur soi ou la planque */
+function deliverJob(id){
+ const j=activeJobs().find(x=>x.id===id);if(!j||j.done||j.failed)return;
+ const have=S.stock+S.stash;
+ if(have<j.q){toast('Il te faut '+j.q+'g — tu en as '+Math.round(have*10)/10+'g','warn');return;}
+ // on prend d'abord la planque, puis le stock
+ let need=j.q;
+ const fromStash=Math.min(need,S.stash);S.stash-=fromStash;need-=fromStash;
+ const fromStock=Math.min(need,S.stock);S.stock-=fromStock;
+ S.money+=j.pay;addRep(2);
+ j.done=true;
+ toast('📌 Contrat honoré ! +'+Math.round(j.pay)+' € • +2 ★','gold',3600);
+ sndCash();vib(40);
+ renderJobs();save();syncHUD();refreshJobsSoon();}
+/* échec : retard ou abandon */
+function failJob(id,silent){
+ const j=activeJobs().find(x=>x.id===id);if(!j||j.done||j.failed)return;
+ j.failed=true;
+ S.rep=Math.max(0,S.rep-1.5);
+ if(!silent)toast('📌 Contrat raté ('+j.label+') : −1,5 ★','warn',3200);
+ sndBlip(180);
+ renderJobs();save();refreshJobsSoon();}
+/* une place se libère après un temps, sinon on bloque */
+let jobRefreshT=20;
+function refreshJobsSoon(){jobRefreshT=22;}
+/* une fois le délai écoulé, les contrats terminés laissent place à de nouveaux */
+function refreshBoard(){
+ const j=activeJobs();
+ for(let i=j.length-1;i>=0;i--)if(j[i].done||j[i].failed)j.splice(i,1);
+ refreshJobs();
+ if($('jobSheet').classList.contains('open'))renderJobs();
+ save();}
+function renderJobs(){
+ const j=activeJobs();
+ $('jobInfo').innerHTML='Contrats en cours : <b>'+j.filter(x=>!x.done&&!x.failed).length+'/'+JOB_MAX+'</b>'+
+  ' • sur toi <b>'+(Math.round(S.stock*10)/10)+' g</b> • planque <b>'+(Math.round(S.stash*10)/10)+' g</b>';
+ if(!j.length)$('jobList').innerHTML='<p class="sub">Aucune affiche pour l\'instant. Reviens plus tard.</p>';
+ else $('jobList').innerHTML=j.map(c=>{
+  if(c.done)return '<div class="upg"><div style="font-size:26px">✅</div><div class="inf"><b>'+c.label+'</b>'+
+   '<br><span style="color:#3ddc74">Livré — +'+Math.round(c.pay)+' €</span></div></div>';
+  if(c.failed)return '<div class="upg"><div style="font-size:26px">❌</div><div class="inf"><b>'+c.label+'</b>'+
+   '<br><span style="color:#ff6b6b">Raté</span></div></div>';
+  const d=districtAt(c.dist==='bloc'?0:c.dist==='marche'?130:20,c.dist==='marche'?0:c.dist==='quais'?140:0);
+  const eur=c.pay;
+  return '<div class="upg"><div style="font-size:26px">📦</div><div class="inf"><b>'+c.label+'</b>'+
+   '<br><span style="color:var(--muted)">prime '+eur+' € • délai '+Math.max(0,c.left).toFixed(1)+' h'+
+   (d?' • zone '+(d.risk>1?'à risque':''):'')+'</span></div>'+
+   '<button class="bigbtn" id="jd_'+c.id+'" style="margin:0;min-height:40px;background:#3ddc74">'+
+   'Livrer</button></div>';}).join('');
+ $('jobList').querySelectorAll('[id^="jd_"]').forEach(b=>b.onclick=()=>deliverJob(b.id.slice(3)));}
+function openJobs(){renderJobs();$('jobSheet').classList.add('open');sndBlip(600);}
+$('jobClose').onclick=()=>$('jobSheet').classList.remove('open');
+/* tick horaire : les délais avancent, les contrats en retard échouent */
+function renderJobsIfOpen(){if($('jobSheet').classList.contains('open'))renderJobs();}
 
 /* ================= LA BANQUE ================= */
 /* l'argent sale sur toi peut être saisi : la banque le protège, moyennant frais */
@@ -3631,6 +3952,21 @@ function marketIndex(){
  const shape=1+.16*Math.sin((h-6)/24*Math.PI*2)*-.6+.1*Math.sin(h/HOURS_CYCLE);
  return clampPrice(shape*(.92+.16*Math.random()));}
 function clampPrice(v){return Math.max(.62,Math.min(1.55,v));}
+const TIERS=[
+ {xp:0,nom:'Petit trafic',ico:'🌱',perk:'Bases'},
+ {xp:300,nom:'Petite équipe',ico:'🧑‍🤝‍🧑',perk:'+5% sur les prix'},
+ {xp:800,nom:'Réseau établi',ico:'🏪',perk:'Clients plus patients'},
+ {xp:1800,nom:'Empire naissant',ico:'🏬',perk:'+10% sur les prix'},
+ {xp:3500,nom:'Mogul du hood',ico:'🏙️',perk:'Contrats les plus gros'}];
+function tierIdx(){
+ try{let i=0;for(let k=0;k<TIERS.length;k++)if((S.rankXp|0)>=TIERS[k].xp)i=k;return i;}catch{return 0;}}
+function currentTier(){return TIERS[tierIdx()];}
+function nextTier(){return TIERS[tierIdx()+1];}
+function tierPriceBonus(){
+ // garde-fou : priceMul peut être appelé pendant la construction du monde,
+ // avant que TIERS ne soit fully évalué (TDZ).
+ try{return 1+tierIdx()*0.05;}catch{return 1;}}
+
 function priceMul(district,hour){
  let m=1;
  const h=hour==null?S.hour:hour;
@@ -3639,6 +3975,7 @@ function priceMul(district,hour){
  if(h>22||h<6)m*=1.12;                             // nuit : la prime de risque
  if(h>=11&&h<15)m*=.92;                            // midi : calme, prix en baisse
  m*=1+(repTier())*.012;                             // ta réputation te donne un prix
+ m*=tierPriceBonus();                               // palier d'empire : +5% par palier
  m*=1-Math.min(.18,S.wanted*.035);                  //+trop grillé : on te paye moins
  if(S.weather==='fog')m*=.94;
  return m;}
@@ -3742,10 +4079,145 @@ function applyOpts(){
  setVol();
  applyCbMarkers();}
 /* daltonien : les couleurs seules ne portent plus l'information, la forme aussi */
+
+/* ============================================================
+   👁 DALTONIEN — vraie implémentation (XAG 103)
+   Aucune information ne doit reposer sur la couleur seule.
+   On applique des filtres HSV simulant deutéranopie, protanopie
+   et tritanopie à l'UI, ET on double chaque signal critique
+   d'une forme (halo + glyphe).
+   ============================================================ */
+const CB_FILTERS={
+ none:'',
+ deut:'url(#fDeut)',
+ prot:'url(#fProt)',
+ trit:'url(#fTrit)'};
 function applyCbMarkers(){
- document.body.classList.toggle('cb',opt().cbMode);}
+ const m=opt().cbMode;
+ // 3 étatsivalents pour le CSS : off / deut / prot (protan et deut partagent
+ // la même stratégie de lisibilité), et un attribut data pour un filtre fin si besoin.
+ const on=!!m&&m!=='none';
+ document.body.classList.toggle('cb',on);
+ document.body.dataset.cb=!on?'':m;
+ // Le filtre SVG est appliqué au HUD via CSS (voir #hud), pas via JS :
+ // c'est plus fiable sur WebView Android.
+}
+/* styles dédiés au mode daltonien : contrastes poussés + formes */
+
+/* ============================================================
+   📅 RITUEL QUOTIDIEN — le levier D1
+   Une raison de rouvrir le jeu chaque jour : récompense quotidienne
+   et série qui monte jusqu'à un vrai lot.
+   ============================================================ */
+const DAILY_REW=[
+ {money:25},{money:40},{seeds:1},{money:70},{money:90,seeds:1},
+ {money:110},{money:150,seeds:2,big:true}];
+function dailyState(){if(!S.daily)S.daily={last:'',streak:0,claimed:false};return S.daily;}
+function todayKey(){return Math.floor(Date.now()/86400000);}
+function dailyTick(){
+ const d=dailyState(),t=todayKey();
+ if(d.last!==String(t)){
+  if(d.last&&String(Number(d.last)+1)!==String(t))d.streak=0;   // jour manqué = série remise à zéro
+  d.last=String(t);d.claimed=false;}}
+function dailyReward(){
+ dailyTick();
+ const d=dailyState();
+ if(d.claimed){toast('Déjà récupéré aujourd’hui — reviens demain 🔥','warn');return;}
+ const r=DAILY_REW[Math.min(7,d.streak)];
+ d.claimed=true;d.streak=Math.min(7,d.streak+1);
+ S.money+=r.money;if(r.seeds)S.seeds.classique+=r.seeds;
+ toast((r.big?'🎁 <b>JOUR 7 !</b> ':'📅 <b>Jour '+d.streak+'</b> ')+
+  '+'+r.money+' €'+(r.seeds?' + '+r.seeds+' graine(s)':'')+(r.big?' — série complète !':''),
+  'gold',r.big?4800:2600);
+ sndCash();vib(30);syncHUD();save();renderProg();}
+function streakLabel(){
+ const d=dailyState();dailyTick();
+ if(d.claimed)return '✓ Récupéré aujourd’hui — série de '+d.streak+' jour(s)';
+ const nx=DAILY_REW[Math.min(7,d.streak)];
+ return '🔥 Série : '+d.streak+' jour(s) — '+nx.money+' € demain'+(nx.seeds?' + '+nx.seeds+' graine':'');}
+/* ============================================================
+   🗓️ DÉFI HEBDOMADAIRE — un but à moyenne échéance
+   ============================================================ */
+const WEEK=[
+ {id:'sold',ico:'💰',t:'Livre 40 g',tgt:40,fn:()=>S.qSum||0,unit:'g'},
+ {id:'earn',ico:'🏦',t:'Gagne 800 € au total',tgt:800,fn:()=>S.totalEarned||0,unit:'€'},
+ {id:'deal',ico:'🤝',t:'Fais 12 deals',tgt:12,fn:()=>S.totalSold||0,unit:''},
+ {id:'grow',ico:'🌿',t:'Récolte 6 plants',tgt:6,fn:()=>S.harvested||0,unit:''}];
+function weekState(){if(!S.week)S.week={id:WEEK[0].id,reward:false};return S.week;}
+function currentWeek(){return WEEK.find(w=>w.id===weekState().id)||WEEK[0];}
+function weekProgress(){const w=currentWeek();return Math.min(w.tgt,Math.floor(w.fn()));}
+function weekPct(){const w=currentWeek();return Math.min(1,w.fn()/w.tgt);}
+function claimWeek(){
+ const st=weekState(),w=currentWeek();
+ if(st.reward){toast('Déjà réclamé cette semaine','warn');return;}
+ if(weekProgress()<w.tgt){toast('Encore '+Math.ceil(w.tgt-weekProgress())+(w.unit?' '+w.unit:'')+' à faire','warn');return;}
+ st.reward=true;S.money+=250;addRep(2);
+ toast('🏆 <b>Défi de la semaine accompli !</b> +250 € • +2 ★','gold',4000);
+ sndCash();save();renderProg();syncHUD();}
+/* ============================================================
+   👑 MÉTA-PROGRESSION — paliers d'empire (le «.meta layer »)
+   ============================================================ */
+function renderProg(){
+ const d=dailyState();dailyTick();
+ const r=RANKS[rankIdx()],nx=rankNext();
+ const w=currentWeek(),wp=weekProgress();
+ const ti=currentTier(),nt=nextTier();
+ const span=nt?Math.max(1,nt.xp-ti.xp):1;
+ const pct=nt?Math.round(Math.max(0,Math.min(1,((S.rankXp|0)-ti.xp)/span))*100):100;
+ $('progBody').innerHTML=
+  '<div class="optsect">Carrière</div>'+
+  '<div class="optrow"><span>🏅 '+r.ico+' <b>'+r.nom+'</b><small>Paye ×'+r.pay+' • risque ×'+r.risk+'</small></span></div>'+
+  (rankIdx()<RANKS.length-1
+   ?'<div class="optrow"><span>↑ Rang suivant : <b>'+nx.nom+'</b><small>'+
+    Math.max(0,Math.ceil(nx.xp-S.rankXp))+' € encore à gagner</small></span></div>':'')+
+  '<div class="optsect">Rituel quotidien</div>'+
+  '<div class="optrow"><span>'+streakLabel()+'<small>7 jours d’affilée = 150 € + 2 graines.</small></span>'+
+   '<button class="bigbtn" id="pgDaily" style="margin:0;min-height:46px;width:auto;flex:0 0 auto;'+
+   'background:'+(d.claimed?'#333':'#3ddc74')+'">'+(d.claimed?'✓ Fait':'Récupérer')+'</button></div>'+
+  '<div class="optsect">Défi de la semaine</div>'+
+  '<div class="optrow"><span>'+w.ico+' <b>'+w.t+'</b><small>'+wp+' / '+w.tgt+' '+w.unit+
+   '<div style="height:7px;background:rgba(255,255,255,.12);border-radius:9px;margin-top:5px">'+
+   '<div style="height:100%;width:'+Math.round(weekPct()*100)+'%;background:var(--gold);border-radius:9px"></div>'+
+   '</div></span><button class="bigbtn" id="pgWeek" style="margin:0;min-height:46px;width:auto;flex:0 0 auto;'+
+   'background:'+(weekState().reward?'#333':(wp>=w.tgt?'#ffd166':'#2a3a30'))+'">'+
+   (weekState().reward?'✓ Fait':(wp>=w.tgt?'250 €':'En cours'))+'</button></div>'+
+  '<div class="optsect">Palier d’empire</div>'+
+  '<div class="optrow"><span>'+ti.ico+' <b>'+ti.nom+'</b><small>'+ti.perk+' '+
+   (nt?'<br>Suivant : '+nt.nom+' ('+(S.rankXp|0)+'/'+nt.xp+')':'')+'</small></span>'+
+   (nt?'<b>'+pct+'%</b>':'<b>MAX</b>')+'</div>';
+ $('pgDaily').onclick=()=>{if(d.claimed)toast('Reviens demain 🔥','warn');else dailyReward();};
+ $('pgWeek').onclick=()=>claimWeek();}
+/* pastille d'alerte : le joueur doit VOIR qu'une récompense l'attend,
+   sinon le rituel quotidien ne fait aucun retour */
+function dailyBadge(){
+ const btn=$('btnCareer');if(!btn)return;
+ const d=dailyState();dailyTick();
+ const ready=!d.claimed;
+ const w=currentWeek();
+ const wkReady=!weekState().reward&&weekProgress()>=w.tgt;
+ btn.style.outline=ready?'3px solid var(--gold)':'';
+ btn.style.outlineOffset=ready?'2px':'';
+ btn.classList.toggle('on',ready||wkReady);}
+function openProg(){renderProg();$('progSheet').classList.add('open');sndBlip(600);}
+$('progClose').onclick=()=>$('progSheet').classList.remove('open');
+
 /* secousses réduites : on coupe les vibrations et le balancement caméra */
+/* « moins de secousses » : la secousse d'interpellation existe réellement,
+   et ce réglage l'annule. Avant, l'option ne pilotait rien. */
 function shakeOK(){return !opt().noShake;}
+let shakeAmp=0,shakeT=0;
+function addShake(a2){
+ // si l'option vient d'être activée, on coupe aussi la secousse déjà en cours
+ if(!shakeOK()){shakeAmp=0;shakeT=0;return;}
+ shakeAmp=Math.min(.6,shakeAmp+a2);shakeT=Math.min(.5,shakeT+.4);}
+function shakeTick(dt,now){
+ if(!shakeOK()){shakeAmp=0;shakeT=0;return;}
+ if(shakeT<=0)return;
+ shakeT-=dt;
+ const amp=shakeAmp*Math.max(0,shakeT)*Math.max(0,shakeT);
+ if(amp<0.0005)return;
+ camera.position.x+=Math.sin(now/23)*amp*.5;
+ camera.position.y+=Math.cos(now/19)*amp*.35;}
 const OPT_SECTIONS=[
  ['🔊 Audio',[
   ['vol','Volume général',0,1,.05,v=>Math.round(v*100)+'%',1],
@@ -3767,7 +4239,9 @@ const OPT_SECTIONS=[
  ['♿ Accessibilité',[
   ['textScale','Taille du texte',.85,1.4,.05,v=>Math.round(v*100)+'%',1],
   ['contrast','Contraste renforcé',null,null,null,null,null],
-  ['cbMode','Marqueurs sans couleur seule',null,null,null,null,null],
+  ['cbMode','Daltonien',null,null,null,
+   v=>({none:'Normal',deut:'Deutéranopie',prot:'Protanopie',trit:'Tritanopie'})[v]||v,
+   ['none','deut','prot','trit']],
   ['noShake','Moins de secousses',null,null,null,null,null],
   ['vibrate','Vibrations',null,null,null,null,null],
   ['leftHand','Interface gauchère',null,null,null,null,null],
@@ -4101,7 +4575,7 @@ function busted(){if(bustLock)return;bustLock=true;chase=false;sirenStop();$('ch
  // retire renfort
  for(let i=cops.length-1;i>=0;i--)if(cops[i].extra){scene.remove(cops[i].mesh);scene.remove(cops[i].cone);cops.splice(i,1);}
  $('bustTxt').innerHTML='Amende : <b>-'+fine+' €</b><br>Sur toi saisis : <b>-'+lost+'g</b> (la planque est sauve 😉)<br>Retour à la maison…';
- $('busted').classList.add('open');sfxBust();vib(80);
+ addShake(.45);$('busted').classList.add('open');sfxBust();vib(80);
  setTimeout(()=>{$('busted').classList.remove('open');player.pos.set(0,0,6);player.riding=false;bustLock=false;save();syncHUD();},2600);save();syncHUD();}
 /* ============ SIMULATION ============ */
 function collide(px,pz){const r=.6;for(const s of solids){
@@ -4278,7 +4752,8 @@ function drawMap(){const W=208,SRC=210;const sc=W/SRC;mm.clearRect(0,0,W,W);mm.f
  const px0=player.pos.x,pz0=player.pos.z;
  const X=x=>W/2+(x-px0)*sc,Z=z=>W/2+(z-pz0)*sc;
  // quartiers en fond
- for(const d of DISTRICTS){mm.fillStyle=d.id==='bloc'?'#141c22':d.id==='marche'?'#1d1a12':'#101c22';
+ const DCOL={bloc:'#141c22',marche:'#1d1a12',quais:'#101c22',cite:'#1e1c14'};
+ for(const d of DISTRICTS){mm.fillStyle=DCOL[d.id]||'#141c22';
   const x0=Math.max(0,X(d.x0)),x1=Math.min(W,X(d.x1)),z0=Math.max(0,Z(d.z0)),z1=Math.min(W,Z(d.z1));
   if(x1>x0&&z1>z0)mm.fillRect(x0,z0,x1-x0,z1-z0);}
  // routes du bloc
@@ -4288,6 +4763,9 @@ function drawMap(){const W=208,SRC=210;const sc=W/SRC;mm.clearRect(0,0,W,W);mm.f
   mm.fillRect(Math.max(0,X(13)),Math.max(0,Z(-65)),Math.min(W,X(19))-Math.max(0,X(13)),Math.min(W,Z(65))-Math.max(0,Z(-65)));}
  // route du marché
  {const a=Math.max(0,X(72)),b=Math.min(W,X(188));if(b>a)mm.fillRect(a,Math.max(0,Z(-3.5)),b-a,Math.min(W,Z(3.5))-Math.max(0,Z(-3.5)));}
+ // route de la Cité (liaison ouest + avenue verticale)
+ {const a=Math.max(0,X(-206)),b=Math.min(W,X(-65));if(b>a)mm.fillRect(a,Math.max(0,Z(6)),b-a,Math.min(W,Z(12))-Math.max(0,Z(6)));
+  const c=Math.max(0,Z(-64)),d2=Math.min(W,Z(64));if(d2>c)mm.fillRect(Math.max(0,X(-153)),c,Math.min(W,X(-147))-Math.max(0,X(-153)),d2-c);}
  // route des quais
  {const a=Math.max(0,Z(74)),b=Math.min(W,Z(186));if(b>a)mm.fillRect(Math.max(0,X(-3.5)),a,Math.min(W,X(3.5))-Math.max(0,X(-3.5)),b-a);}
  mm.fillStyle='#232a35';mm.fillRect(X(-65),Z(6),130*sc,6*sc);mm.fillRect(X(13),Z(-65),6*sc,130*sc);mm.fillRect(X(-65),Z(30),130*sc,6*sc);
@@ -4333,7 +4811,9 @@ $('tutoSkip').onclick=()=>{S.tuto=TUTO.length;save();$('tuto').classList.remove(
 });
 /* ============ BOUCLE ============ */
 let last=performance.now(),acc=0,mapT=0,stam=100,rainSnd=0;
-function animate(now){requestAnimationFrame(animate);
+function animate(now){/* la collecte LOD doit se faire une fois le monde construit, juste avant la boucle */
+collectLOD();
+requestAnimationFrame(animate);
  const rawDt=Math.min(.05,(now-last)/1000);last=now;
  const dt=paused?0:rawDt*S.timeScale;   // timeScale accélère simulation + horloge
  if(!bustLock&&!paused){
@@ -4417,6 +4897,7 @@ function animate(now){requestAnimationFrame(animate);
   // écran étroit : on vise un peu plus haut pour que la pièce se place sous les cartes du HUD
   const frameUp=camIn?Math.max(0,1.25-camera.aspect)*3.4:0;
   camera.lookAt(fx,(camIn?.6:1.4)+frameUp,fz);
+  shakeTick(rawDt,now);
   copTick(dt);informantTick(dt);roadblockTick(dt);growTick(dt);updateInteract();
  S.hour+=dt*(24/240);S.playT+=dt;
  if(S.hour>=24){S.hour-=24;S.dayN++;
@@ -4465,8 +4946,11 @@ function animate(now){requestAnimationFrame(animate);
    for(let i=0;i<sp.length/3;i++){sp[i*3+1]-=2.4*rawDt;sp[i*3]+=Math.sin(now/900+i)*.004;
     if(sp[i*3+1]<0){sp[i*3+1]=26;sp[i*3]=camera.position.x+(Math.random()-.5)*44;sp[i*3+2]=camera.position.z+(Math.random()-.5)*44;}}
    snowPts.geometry.attributes.position.needsUpdate=true;}
-  weatherTick(rawDt);eventTick(rawDt);fpsTick(rawDt);metroTick();
-  acc+=dt;if(acc>1){acc=0;save();syncHUD();missionCheck();checkWin();}
+  weatherTick(rawDt);eventTick(rawDt);fpsTick(rawDt);metroTick();jobTick(dt);
+  lightBudgetTick();lodTick();
+  acc+=dt;if(acc>1){acc=0;dailyTick();dailyBadge();if(opt().autoSave)save();syncHUD();missionCheck();checkWin();
+   if(!weekState().reward&&weekProgress()>=currentWeek().tgt&&!$('progSheet').classList.contains('open'))
+    toast('🏆 Défi hebdomadaire accompli — récupère tes 250 €','gold',3600);}
   mapT+=dt;if(mapT>.2){mapT=0;drawMap();if($('sellSheet').classList.contains('open'))refreshSell();}
  }
  gradeTick(daylight());
@@ -4532,7 +5016,7 @@ window.HG_back=function(){
  if(t&&t.classList.contains('open')){$('tutoSkip').click();return true;}
  if(h&&h.classList.contains('open')){h.classList.remove('open');return true;}
  if(paused)return false; // déjà en pause : l'application se ferme
- if(['winSheet','growSheet','sellSheet','safeSheet','shopSheet','labSheet','statsSheet','optionsSheet','marcheSheet','douaneSheet','bankSheet','polSheet','metroSheet']
+ if(['winSheet','growSheet','sellSheet','safeSheet','shopSheet','labSheet','statsSheet','optionsSheet','marcheSheet','douaneSheet','bankSheet','polSheet','metroSheet','jobSheet','progSheet']
    .some(id=>{const e=$(id);return e&&e.classList.contains('open');})){switchSheet('');return true;}
  togglePause();return true;};
 /* l'application prévient quand elle passe en arrière-plan */

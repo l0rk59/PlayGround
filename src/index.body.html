@@ -1,0 +1,219 @@
+<body>
+<div id="scene"></div>
+<div id="hud">
+  <div class="pill"><div class="ico">💰</div><div><div class="v" id="money">150 €</div><div class="l">Argent</div></div></div>
+  <div class="pill"><div class="ico">🫙</div><div><div class="v" id="stock">0 g</div><div class="l" id="stashMini">planque 0 g</div></div></div>
+  <div class="pill"><div class="ico">🚨</div><div><div class="v" id="stars">☆☆☆☆☆</div><div class="l" id="lvl">Niv.1</div></div></div>
+</div>
+<div id="chase">🚨 COURSE-POURSUITE — SEME-LES ! 🌿</div>
+<div id="legal">🔞 <b>Jeu fictif +18.</b> Monde ouvert pédagogique — aucun achat réel. Respecte la loi.<button id="legalX">✕</button></div>
+<div id="mission">🎯 <b>Mission :</b> <span id="missionTxt">…</span></div>
+<div id="mapWrap"><canvas id="minimap" width="208" height="208"></canvas><div id="clock">🌙 22:00</div></div>
+<div id="distbar"><span id="distName">Le Bloc</span><span id="rentIn">🏠 J3</span><span id="grade"></span><span id="wthr"></span></div>
+<div id="rankbar"><span id="rankIco">🌱</span><b id="rankName">Petit dealer</b>
+  <span id="rankPay"></span>
+  <div id="rankTrack"><i id="rankFill"></i></div>
+  <span id="rankNext"></span></div>
+<div id="status"><div class="tag" id="tagHide">🌿 CACHÉ</div><div class="tag" id="tagSafe">🏠 PLANQUE</div><div class="tag" id="tagSneak" style="border-color:var(--gold);color:var(--gold)">🐈 DISCRET</div><div class="tag" id="tagBike" style="border-color:var(--blue);color:var(--blue)">🚲 VÉLO</div><div class="tag" id="tagIn" style="border-color:var(--violet);color:var(--violet)">🏠 CHEZ TOI</div></div>
+<div id="prompt"></div>
+<div id="joy"><div id="stick"></div></div>
+<div id="stam"><i id="stamFill"></i></div>
+<div id="deliv"></div>
+<div id="btns">
+  <button class="abtn" id="btnAct">💰 Vendre</button>
+  <button class="abtn" id="btnSneak">🐈<small>Discret</small></button>
+  <button class="abtn" id="btnSprint">⚡<small>Sprinter</small></button>
+  <button class="abtn" id="btnSeeds">🌱<small id="seedCount">0</small></button>
+  <button class="abtn" id="btnLab">🧬<small id="labCount2">0</small></button>
+  <button class="abtn" id="btnSpeed">⏩<small id="spdTxt">×1</small></button>
+  <button class="abtn" id="btnOpts">⚙️<small>Réglages</small></button>
+  <button class="abtn" id="btnStats">📊<small>Stats</small></button>
+  <button class="abtn" id="btnCareer">🏅<small>Carrière</small></button>
+</div>
+<button id="helpBtn">?</button>
+<button id="pauseBtn">⏸</button>
+<div id="helpCard"><b>🌃 Guide du hood :</b><br>🕹️ <b>Joystick</b> pour marcher • glisse à droite pour la caméra • <b>⚡</b> sprinter (barre bleue = endurance, bruyant !).<br>🏠 <b>Entre chez toi</b> par la porte : le toit s'ouvre et les murs s'effacent. La chambre de culture est à gauche (6 pots).<br>🚲 <b>Vélo</b> près de la maison pour livrer vite et semer les flics.<br>🧍 Clients <b>!</b> : 🎉 paie +, 😟 part si flics proches. <b>Négocie</b> = +12% mais +risque.<br>📦 <b>Commandes</b> : bannière violette, point GPS, timer 80s = gros bonus.<br>🚓 Cônes rouges = vision. <b>?</b> = soupçon, <b>!!</b> = poursuite. Perdus de vue, ils <b>fouillent</b> ton dernier point vu !<br>🌳 Buissons = caché • 🏠 garage = planque (stock à l'abri + style + avocat).<br>🏅 <b>Grades :</b> la qualité de tes soins donne un lot A (+35%) / B / C (−25%). Eau 25-85%, nutriments, rinçage et défoliation = A.<br>📍 <b>Quartiers :</b> Le Bloc (calme) • <b>Le Marché</b> dès rép. 3 • <b>Les Quais</b> dès rép. 7. Ils paient plus mais le risque police y est ×1,45 et ×1,9.<br>⭐ <b>Réputation :</b> +1 par deal propre, −1 si vu. Elle ouvre les quartiers, les clients ❤️ et les meilleurs prix.<br>👤 <b>Rivaux</b> (🕶️ Zoé, 🎩 Malik) : ils débauchent tes clients proches, surveille la minimap.<br>🏠 <b>Loyer</b> tous les 3 jours : plus tu montes, plus c'est cher. Ne reste pas fâché.<br>🌞 <b>Jour/nuit</b> (horloge sur la carte) : la ville vit — piétons, circulation, néons la nuit.<br>🌦️ <b>Météo</b> qui change seule : 🌫️ brume = −40% de risque, ☀️ dégagé = +10%.<br>🧬 <b>Génétique</b> (bouton 🧬 / chambre de culture) : chaque récolte a 12% de chance de <b>muter</b>. Une souche mutante = couleur, vitesse, rendement et THC propres. <b>Croise</b> deux souches dans le labo pour un hybride. La <b>Wodka</b> double le rendement mais peut cramer.<br>😏 <b>Négociation</b> : lis l'humeur du client (😌🙂😐🧊🤬 — sa posture et la couleur de son repère te le disent) et suis le conseil affiché. Monte d'un cran par bluff (+7%, max ×1,29) ou redescends : reculer rend de la patience mais coûte un tour.<br>
+🚗 <b>Véhicules</b> (garage) : vélo, scooter, citadine, fourgon. Plus c'est rapide, plus les flics t'entendent de loin. Le coffre d'un véhicule ajoute de la place à ta planque, et ça consomme du carburant.<br>
+🏦 <b>Banque</b> : l'argent sur toi peut être saisi, celui qui est déposé non. Le coffre-fort va plus loin.<br>
+🚓 <b>Commissariat</b> : paie pour faire baisser la recherche, acheter tes papiers (plus de fouille aux barrades) ou te protéger quelques jours.<br>
+🚇 <b>Métro</b> (icônes bleues sur la carte) : 40 € et 20 minutes pour traverser la ville. Les quartiers fermés demandent de la réputation.<br>
+🏚️ <b>La Cité</b> (5★) : tours HLM, cours et laverie — risquée mais très rentable. Passée 7★, Les Quais s'ouvrent.<br>
+📌 <b>Contrats</b> (panneau près du métro du Bloc) : 3 commandes en cours, un délai, une prime et de la réputation. Livré à temps tu gagnes ; en retard tu perds 1,5★.<br>
+⚙️ <b>Réglages</b> : volumes séparés, qualité auto/éco/standard/élevé, champ de vision, contraste renforcé, taille du texte, interface gauchère, export/restauration de la sauvegarde.<br>
+⏩ <b>Vitesse ×1/×2/×4</b> : un jour de jeu dure ~120 s en ×1. Accélère pour l'argent ou les événements.<br>📊 <b>Statistiques</b> (pause) : revenus/h, g/h, taux de deals discrets, pertes.<br>💎 <b>Client VIP</b> : paie ×2 mais veut 8-11 g. 🚓 <b>Contrôle</b> : si tu portes du stock, ils en saisissent. 🌃 <b>Nuit de spawn</b> : clients affamés + flics.<br>🏅 <b>Carrière</b> (barre dorée) : 6 rangs. Chaque rang paie plus mais attire plus de flics. Le rang <b>Légende</b> = fin de partie.<br>🌱 <b>Graines en stock fini</b> (boutique 🌱) : tu commences avec 3, il faut en racheter.<br>🧰 <b>Planque limitée</b> (capacité affichée) : dépassement = stock perdu. Agrandis-la.<br>🆘 <b>Secours d'urgence</b> au planque : 25 € contre de l'herbe, ça évite la faillite.<br>💰 +20g sur toi = plus visible. Pris = -30% € et moitié du stock sur toi saisie.<button id="helpClose" class="bigbtn" style="background:#3ddc74">Compris !</button></div>
+
+<div class="sheet" id="pauseSheet"><div class="card">
+  <h2>⏸ Pause</h2>
+  <p class="sub">Niveau <b id="pLvl">1</b> • <span id="pStats"></span></p>
+  <p class="sub" id="pBuild" style="font-size:10.5px;opacity:.7;margin:-4px 0 6px"></p>
+  <button class="bigbtn" id="pResume" style="background:#3ddc74">▶ Reprendre</button>
+  <button class="bigbtn" id="pSound" style="background:#223;color:#fff">🔊 Son : ON</button>
+  <button class="bigbtn" id="pMusic" style="background:#223;color:#fff">🎵 Musique : ON</button>
+  <button class="bigbtn" id="pRain" style="background:#223;color:#fff">🌧 Pluie : OFF</button>
+  <button class="bigbtn" id="pQuality" style="background:#223;color:#fff">✨ Qualité : HD</button>
+  <button class="bigbtn" id="pSpeed" style="background:#223;color:#fff">⏩ Vitesse : ×1</button>
+  <button class="bigbtn" id="pOptsBtn" style="background:#223;color:#fff">⚙️ Réglages & accessibilité</button>
+  <button class="bigbtn" id="pStatsBtn" style="background:#223;color:#fff">📊 Statistiques</button>
+  <button class="bigbtn" id="pWipe" style="background:#5a5a10;color:#fff">🗑 Effacer les mutations</button>
+  <button class="bigbtn" id="pHelp" style="background:#223;color:#fff">❓ Aide</button>
+  <button class="bigbtn" id="pReset" style="background:#5a1020;color:#fff">🗑 Recommencer la partie</button>
+</div></div>
+
+<div class="sheet" id="progSheet"><div class="card">
+  <h2>🏅 Carrière &amp; Progression</h2>
+  <div id="progBody"></div>
+  <button class="bigbtn" id="progClose" style="background:#223">Fermer</button>
+</div></div>
+
+<div class="sheet" id="optionsSheet"><div class="card">
+  <h2>⚙️ Réglages</h2>
+  <p class="sub">Tout s'enregistre automatiquement.</p>
+  <div id="optBody"></div>
+  <button class="bigbtn" id="optClose" style="background:#223;color:#fff">Fermer</button>
+</div></div>
+
+<div class="sheet" id="sellSheet"><div class="card">
+  <h2 id="sellTitle">🧍 Client</h2>
+  <p class="sub" id="sellInfo"></p>
+  <p class="sub" id="sellLine" style="font-style:italic;color:#cfe0ff"></p>
+  <div class="sub">Patience :<div class="patbar"><i id="patFill"></i></div></div>
+  <div class="sub">Risque de repérage : <b id="riskV"></b><div class="riskbar"><i id="riskFill"></i></div><span id="riskTxt" style="font-size:11.5px"></span></div>
+  <button class="bigbtn" id="sell2" style="background:#3ddc74">Vendre 2g</button>
+  <button class="bigbtn" id="sellMax" style="background:#ffd166;color:#3a2a00">Vendre la demande</button>
+  <div id="bluffBox" style="display:none">
+   <p class="sub" id="bluffTxt"></p>
+   <div style="display:flex;gap:7px">
+    <button class="bigbtn" id="bluffUp" style="flex:1;background:#b892ff;color:#1c1038">😏 Bluff +7%</button>
+    <button class="bigbtn" id="bluffDown" style="flex:1;background:#3a7b6b">😅 Reculer −7%<br><small style="font-size:10px;opacity:.8">lui rend de la patience</small></button>
+   </div>
+  </div>
+  <button class="bigbtn" id="sellHaggle" style="background:#b892ff;color:#1c1038">😏 Négocier</button>
+  <button class="bigbtn" id="sellClose" style="background:#223;color:#fff">Laisser tomber</button>
+</div></div>
+
+<div class="sheet" id="statsSheet"><div class="card">
+  <h2>📊 Statistiques</h2>
+  <p class="sub" id="statsBody"></p>
+  <button class="bigbtn" id="statsClose" style="background:#223;color:#fff">Fermer</button>
+</div></div>
+
+<div class="sheet" id="labSheet"><div class="card">
+  <h2>🧬 Labo génétique</h2>
+  <p class="sub">Tes souches : <b id="labCount">0</b> • Mut chance : <b id="labMut">12%</b><br>
+  Chaque récolte a <b id="labMutPct">12%</b> de muter en une nouvelle souche. Croise deux souches pour mélanger leurs gènes.</p>
+  <div id="labGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:7px"></div>
+  <h3 style="font-size:13px;margin:10px 0 4px">Lignée de tes mutations</h3>
+  <div id="labPed" class="sub" style="max-height:110px;overflow:auto"></div>
+  <h3 style="font-size:13px;margin:10px 0 4px">Croisement</h3>
+  <p class="sub" id="crossInfo">Sélectionne 2 souches : A puis B.</p>
+  <button class="bigbtn" id="crossBtn" style="background:#b892ff;color:#1c1038" disabled>🧬 Croiser (60 €)</button>
+  <button class="bigbtn" id="buyFrag" style="background:#c94a6b">Wodka (souche fragile) — 90 € · double rendement, 30% de mort</button>
+  <button class="bigbtn" id="labMutBtn" style="background:#223;color:#fff">🧬 Kit mutation — 40 € · +6% de mut chance (max 30%)</button>
+  <button class="bigbtn" id="labClose" style="background:#223;color:#fff">Fermer</button>
+</div></div>
+
+<div class="sheet" id="shopSheet"><div class="card">
+  <h2>🌱 Fournisseur de graines</h2>
+  <p class="sub">Ton cash : <b id="shMoney" style="color:var(--gold)"></b><br>Les graines sont <b>en stock fini</b> — plante tant que tu peux, rachète après.</p>
+  <div id="shopSeeds"></div>
+  <button class="bigbtn" id="shopClose" style="background:#223;color:#fff">Fermer</button>
+</div></div>
+
+<div class="sheet" id="winSheet"><div class="card" style="text-align:center;border-color:var(--gold)">
+  <div style="font-size:52px">🏆</div>
+  <h2 id="winTitle"></h2>
+  <p class="sub" id="winStats" style="line-height:1.6"></p>
+  <button class="bigbtn" id="winClose" style="background:#ffd166;color:#3a2a00">Continuer à jouer</button>
+</div></div>
+
+<div class="sheet" id="growSheet"><div class="card">
+  <h2>🌿 Chambre de culture <small style="color:var(--muted)">chez toi • cycle rapide</small></h2>
+  <p class="sub">Argent : <b id="gMoney" style="color:var(--gold)">150 €</b> • Sur toi : <b id="gStock">0 g</b><span id="gXl"></span><br>Plante (3€) → Lumière 18 h/6 h · Arrose · Engrais · pH 6.0 → Récolte puis séchage.</p>
+  <div id="lightBox" class="sub" style="margin:0 0 7px;padding:7px 9px;border-radius:10px;border:1px solid rgba(255,255,255,.18);background:rgba(10,18,30,.85)"></div>
+  <div id="dryBox" class="sub" style="margin:0 0 7px;display:none;padding:7px 9px;border-radius:10px;border:1px solid rgba(61,220,116,.4);background:rgba(12,30,18,.85)"></div>
+  <div id="strainSel" style="display:flex;gap:6px;margin-bottom:7px"></div>
+  <div class="potgrid" id="potGrid"></div>
+  <p class="sub">Graines : <span id="gSeeds"></span> • Labo : <span id="gLab">0</span></p>
+  <div class="growActs">
+    <button id="gPlant" style="background:#3ddc74">🌱<br>Planter <small id="gPlantCost">3 €</small></button>
+    <button id="gWater" style="background:#4cc3ff">💧<br>Arroser</button>
+    <button id="gFeed" style="background:#ff9f1c">🧪<br>Engrais</button>
+    <button id="gPh" style="background:#22d3ee">🧪<br>pH</button>
+    <button id="gPest" style="background:#b892ff">🐛<br>Ravageurs</button>
+    <button id="gPower" style="background:#334155;color:#fff">🔌<br>Courant</button>
+    <button id="gClock" style="background:#7a5ad8;color:#fff">🕗<br>Cycle</button>
+    <button id="gHarv" style="background:#ffd166">✂️<br>Récolter</button>
+  </div>
+  <button class="bigbtn" id="growClose" style="background:#223">Fermer</button>
+  <button class="bigbtn" id="gLabBtn" style="background:#b892ff;color:#1c1038">🧬 Ouvrir le labo génétique</button>
+</div></div>
+
+<div class="sheet" id="safeSheet"><div class="card">
+  <h2>🏠 Planque du garage</h2>
+  <p class="sub">Sur toi : <b id="sCarry">0 g</b> • Planque : <b id="sStash">0 g</b> / <b id="sCap">40 g</b> (à l'abri des saisies)<br>+20g sur toi = beaucoup plus visible des flics.</p>
+  <button class="bigbtn" id="sRescue" style="background:#7a4a1e">🆘 Secours d'urgence — 25 € (8-12g + 2 graines, efface 1★)</button>
+  <div style="display:flex;gap:7px"><button class="bigbtn" id="sDepot" style="background:#3ddc74;flex:1">📥 Tout déposer</button>
+  <button class="bigbtn" id="sTake" style="background:#4cc3ff;flex:1">📤 Prendre 10g</button></div>
+  <h2 style="margin-top:10px">🛠 Améliorations</h2>
+  <div id="upgs"></div>
+  <p class="sub" id="passBox" style="margin:8px 0 0"></p>
+  <h2 style="margin-top:10px">🚗 Véhicules</h2>
+  <p class="sub" style="margin:0 0 4px">Plus c'est rapide, plus ça s'entend. Le coffre ajoute de la place à la planque.</p>
+  <div id="vehBox"></div>
+  <h2 style="margin-top:10px">😎 Style</h2>
+  <div id="hoodies"></div>
+  <button class="bigbtn" id="safeClose" style="background:#223">Fermer</button>
+</div></div>
+
+<div class="sheet" id="marcheSheet"><div class="card">
+  <h2>🍜 Le Mercato — comptoir clandestin</h2>
+  <p class="sub">Le comptoir de <b>Nadia</b>, derrière les étals. Elle ne demande pas de papiers.
+  <br><span id="mRisk"></span></p>
+  <div id="mShop"></div>
+  <button class="bigbtn" id="marcheClose" style="background:#223">Fermer</button>
+</div></div>
+
+<div class="sheet" id="douaneSheet"><div class="card">
+  <h2>📋 L'entrepôt de la Douane</h2>
+  <p class="sub">Le comptoir de <b>M. Ferrand</b>. Transactions discrètes, sans reçu.
+  <br><span id="dRisk"></span></p>
+  <div id="dShop"></div>
+  <button class="bigbtn" id="douaneClose" style="background:#223">Fermer</button>
+</div></div>
+
+<div class="sheet" id="bankSheet"><div class="card">
+  <h2>🏦 La Banque du Bloc</h2>
+  <p class="sub">Le guichet de <b>Mme Ferrand</b>. L'argent sur ton toi peut disparaître ; ici non.
+  <br><span id="bInfo"></span></p>
+  <div id="bankShop"></div>
+  <button class="bigbtn" id="bankClose" style="background:#223">Fermer</button>
+</div></div>
+
+<div class="sheet" id="polSheet"><div class="card">
+  <h2>🚓 Le Commissariat</h2>
+  <p class="sub">Le brigadeau de <b>l'Adjudant</b>. Tout est « régulier », promis.
+  <br><span id="polInfo"></span></p>
+  <div id="polShop"></div>
+  <button class="bigbtn" id="polClose" style="background:#223">Fermer</button>
+</div></div>
+
+<div class="sheet" id="metroSheet"><div class="card">
+  <h2>🚇 Métro du Bloc</h2>
+  <p class="sub">La ligne relie les quartiers. Un trajet coûte <b id="metroPrice">40 €</b>
+  et avance l'horloge de 20 minutes.</p>
+  <div id="metroList"></div>
+  <button class="bigbtn" id="metroClose" style="background:#223">Fermer</button>
+</div></div>
+
+<div class="sheet" id="jobSheet"><div class="card">
+  <h2>📌 Le Panneau des Contrats</h2>
+  <p class="sub">Des commandes nommées, un délai, un prime. Manque le délai et tu perds la face.
+  <br><span id="jobInfo"></span></p>
+  <div id="jobList"></div>
+  <button class="bigbtn" id="jobClose" style="background:#223">Fermer</button>
+</div></div>
+
+<div id="busted"><div class="in"><div style="font-size:44px">🚨</div><h2>INTERPELLÉ !</h2><p id="bustTxt" style="line-height:1.5"></p></div></div>
+<div id="tuto"><b id="tutoTitle"></b><div id="tutoTxt"></div><div style="display:flex;gap:8px"><button id="tutoNext" style="flex:1;background:#3ddc74">Suivant ➜</button><button id="tutoSkip" style="background:#2a3a30;color:#fff">Passer</button></div></div>
+<div id="toasts"></div>
+

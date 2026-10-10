@@ -34,7 +34,7 @@ const out = await p.evaluate(async () => {
     return false;
   };
 
-  T(H.STATIONS.length === 3, 'trois stations de métro',
+  T(H.STATIONS.length === 4, 'quatre stations de métro',
     H.STATIONS.map(s => s.nom).join(', '));
   T(H.STATIONS.every(s => s.mesh && s.lamp), 'chaque station a son abri et son éclairage');
 
@@ -48,7 +48,7 @@ const out = await p.evaluate(async () => {
   H.openMetro();
   T(document.getElementById('metroSheet').classList.contains('open'), 'la feuille Métro s\'ouvre');
   const btns = document.querySelectorAll('#metroList [data-m]');
-  T(btns.length === 3, 'les trois destinations sont listées');
+  T(btns.length === 4, 'les quatre destinations sont listées');
 
   // --- trajet vers le Marché ---
   const px = H.player.pos.x, pz = H.player.pos.z;
@@ -77,6 +77,25 @@ const out = await p.evaluate(async () => {
   quaisBtn.click();
   await new Promise(r => setTimeout(r, 200));
   T(H.S.money === money1, 'un trajet vers un quartier verrouillé est refusé');
+
+  // --- la Cité exige 5 ★ ---
+  H.S.rep = 10; H.S.money = 500;
+  H.player.pos.set(bloc.x, 0, bloc.z + 4);
+  await settle(() => H.nearStation() === bloc);
+  H.openMetro();
+  document.querySelector('#metroList [data-m="cite"]').click();
+  await new Promise(r => setTimeout(r, 250));
+  const cite = H.STATIONS.find(x => x.id === 'cite');
+  T(Math.abs(H.player.pos.x - cite.x) < 6, 'avec 10 ★ on voyage jusqu\'à La Cité',
+    'pos=' + H.player.pos.x.toFixed(0) + ' station=' + cite.x);
+  H.S.rep = 2;   // sous le seuil
+  H.player.pos.set(bloc.x, 0, bloc.z + 4);
+  await settle(() => H.nearStation() === bloc);
+  H.renderMetro();
+  const m2 = H.S.money;
+  document.querySelector('#metroList [data-m="cite"]').click();
+  await new Promise(r => setTimeout(r, 200));
+  T(H.S.money === m2, 'La Cité reste fermée à 2 ★');
 
   // --- sans argent ---
   H.S.rep = 10; H.S.money = 5;

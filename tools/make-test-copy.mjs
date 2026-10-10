@@ -25,10 +25,12 @@ const HOOK = `window.__T=THREE;window.__H={HOME,HW,HD,HH,DOORW,GARDEN,get player
   clients,openSell,startBluff,bluffStep,MOODS,moodOf,moodInfo,readAdvice,applyMoodPose,refreshSell,
   HALLS,hallMarket,hallDouane,hallBank,hallPolice,inHall,hallAt,setHallOpen,
   openMarche,openDouane,openBank,openPol,MSHOP,DSHOP,BANK,POL,mPrice,dPrice,renderBank,renderPol,STATIONS,nearStation,openMetro,takeMetro,renderMetro,metroTick,
+  jobBoard,get nearJob(){return nearJob},activeJobs,deliverJob,failJob,renderJobs,openJobs,makeJob,refreshBoard,JOB_MAX,jobTick,
   copSight,get nearHall(){return nearHall},stashCap,
   VEH,vehList,vehOwned,vehData,vehFuel,vehTank,mountVeh,dismount,nearVeh,nearVehData,
   vehMeshRef,vehPark,vehFuelTick,rideNoise,trunkBonus,renderSafe,renderVeh,get player(){return player},
-  opt,applyOpts,renderOpts,openOpts,setVol,qualityLevel,DEFOPT,dest,bloomPass,gradePass,get FPSLOW(){return FPSLOW},get camDist(){return camDist},
+  opt,applyOpts,renderOpts,openOpts,setVol,qualityLevel,DEFOPT,addShake,shakeTick,shakeOK,dailyState,dailyTick,dailyReward,streakLabel,claimWeek,
+  weekState,currentWeek,weekProgress,weekPct,tierIdx,currentTier,nextTier,tierPriceBonus,renderProg,openProg,TIERS,WEEK,DAILY_REW,priceMul,dest,bloomPass,gradePass,get FPSLOW(){return FPSLOW},get camDist(){return camDist},
   get sellTarget(){return sellTarget},get bluff(){return bluff},clientLine};`;
 
 const anchor = 'requestAnimationFrame(animate);';

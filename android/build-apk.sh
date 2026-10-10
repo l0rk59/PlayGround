@@ -46,6 +46,14 @@ echo "  build    : $BT_DIR"
 
 # --- 1. assets du jeu -------------------------------------------------------
 # index.html + three.module.js, numéro de version injecté dans le jeu
+# garde-fou : on refuse de construire un index.html désynchronisé des sources,
+# sinon l'APK embarquerait une version différente de celle qui est versionnée.
+if command -v node >/dev/null 2>&1; then
+  if ! node "$ROOT/tools/build-web.mjs" --check >/dev/null 2>&1; then
+    echo "  ⚠ index.html est désynchronisé de src/ — assemblage en cours…"
+    node "$ROOT/tools/build-web.mjs" >/dev/null
+  fi
+fi
 mkdir -p "$ASSETS"
 cp "$ROOT/index.html" "$ASSETS/index.html"
 cp "$ROOT/three.module.js" "$ASSETS/three.module.js"

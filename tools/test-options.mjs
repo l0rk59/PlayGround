@@ -114,6 +114,39 @@ const out = await p.evaluate(async () => {
   T(!document.body.classList.contains('contrast') && !document.body.classList.contains('lefthand'),
     'tout revient à la normale');
 
+  // --- cbMode : un vrai réglage, pas une classe vide ---
+  H.S.opt.cbMode = 'deut'; H.applyOpts(); await wait(60);
+  T(document.body.classList.contains('cb') && document.body.dataset.cb === 'deut',
+    'le mode deutéranopie s\'active vraiment', document.body.dataset.cb);
+  H.S.opt.cbMode = 'prot'; H.applyOpts(); await wait(60);
+  T(document.body.dataset.cb === 'prot', 'le mode protanopie est distinct');
+  H.S.opt.cbMode = 'none'; H.applyOpts(); await wait(60);
+  T(!document.body.classList.contains('cb'), 'le mode normal se restaure');
+
+  // --- noShake : une secousse existe et l\'option la coupe ---
+  H.S.opt.noShake = false; H.applyOpts();
+  H.camera.position.set(10, 5, 10);
+  H.addShake(0.5);
+  T(H.shakeOK() === true, 'la secousse est autorisée par défaut');
+  H.shakeTick(0.016, 1000);
+  const moved = Math.abs(H.camera.position.x - 10) > 0.0001;
+  T(moved, 'la secousse déplace réellement la caméra',
+    'dx=' + (H.camera.position.x - 10).toFixed(4));
+  H.camera.position.set(10, 5, 10);
+  H.S.opt.noShake = true;
+  H.addShake(0.5);
+  H.shakeTick(0.016, 1000);
+  T(Math.abs(H.camera.position.x - 10) < 0.0001,
+    '« moins de secousses » annule complètement le mouvement');
+  H.S.opt.noShake = false;
+
+  // --- autoSave : respecté ---
+  H.S.money = 777;
+  localStorage.removeItem('hoodgrow_v3');
+  H.S.opt.autoSave = false;
+  T(localStorage.getItem('hoodgrow_v3') === null,
+    'autoSave désactivé : pas d\'écriture automatique immédiate');
+
   // --- les options survivent à une sauvegarde/chargement ---
   H.S.opt.vol = 0.42; H.save();
   const raw = JSON.parse(localStorage.getItem('hoodgrow_v3'));

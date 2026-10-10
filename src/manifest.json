@@ -1,0 +1,57 @@
+[
+ {
+  "file": "00-etat.js",
+  "desc": "État, sauvegarde, génétique de base",
+  "lines": 93
+ },
+ {
+  "file": "10-career-audio.js",
+  "desc": "Carrière, audio, réglages par défaut",
+  "lines": 218
+ },
+ {
+  "file": "20-monde.js",
+  "desc": "Monde 3D : quartiers, bâtiments, ciel",
+  "lines": 129
+ },
+ {
+  "file": "30-maison.js",
+  "desc": "Maison et intérieurs (Mercato, Douane…)",
+  "lines": 564
+ },
+ {
+  "file": "40-world3d.js",
+  "desc": "Monde 3D avancé : circulation, foule",
+  "lines": 1222
+ },
+ {
+  "file": "50-personnages.js",
+  "desc": "Personnages articulés",
+  "lines": 225
+ },
+ {
+  "file": "60-controles.js",
+  "desc": "Contrôles, labo, holographie",
+  "lines": 493
+ },
+ {
+  "file": "70-interactions.js",
+  "desc": "Interactions : culture, vente",
+  "lines": 79
+ },
+ {
+  "file": "80-lieux.js",
+  "desc": "Lieux : marché, douane, banque, police",
+  "lines": 1167
+ },
+ {
+  "file": "90-perso.js",
+  "desc": "Personnages, simulation",
+  "lines": 232
+ },
+ {
+  "file": "95-sim-hud.js",
+  "desc": "Simulation, HUD, boucle",
+  "lines": 225
+ }
+]
