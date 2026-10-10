@@ -1,0 +1,263 @@
+{
+  "version": "v0",
+  "relics": [
+    {
+      "id": "cascade_spark",
+      "name": {
+        "fr": "Etincelle",
+        "en": "Spark"
+      },
+      "archetype": "cascade",
+      "rarity": "common",
+      "trigger": "on_clear",
+      "condition": {
+        "kind": "min_lines",
+        "value": 1
+      },
+      "effect": {
+        "kind": "add_mult",
+        "value": 350
+      },
+      "text": {
+        "fr": "Chaque effacement ajoute +0,035 au Multiplicateur.",
+        "en": "Every clear adds +0.035 to the Multiplier."
+      }
+    },
+    {
+      "id": "cascade_storm",
+      "name": {
+        "fr": "Tempete",
+        "en": "Storm"
+      },
+      "archetype": "cascade",
+      "rarity": "rare",
+      "trigger": "on_combo",
+      "condition": {
+        "kind": "min_chain",
+        "value": 3
+      },
+      "effect": {
+        "kind": "mul_mult",
+        "valueBp": 12500
+      },
+      "text": {
+        "fr": "Combo de 3 ou plus : Multiplicateur x1,25.",
+        "en": "Combo of 3 or more: Multiplier x1.25."
+      }
+    },
+    {
+      "id": "citadel_breath",
+      "name": {
+        "fr": "Souffle",
+        "en": "Breath"
+      },
+      "archetype": "citadel",
+      "rarity": "common",
+      "trigger": "on_round_start",
+      "condition": {
+        "kind": "empty_cells_at_least",
+        "value": 36
+      },
+      "effect": {
+        "kind": "add_shards",
+        "value": 60
+      },
+      "text": {
+        "fr": "Grille dégagée en début de round : +60 Éclats.",
+        "en": "Board cleared at round start: +60 Shards."
+      }
+    },
+    {
+      "id": "citadel_lock",
+      "name": {
+        "fr": "Verrou",
+        "en": "Lock"
+      },
+      "archetype": "citadel",
+      "rarity": "rare",
+      "trigger": "on_clear",
+      "condition": {
+        "kind": "empty_cells_at_most",
+        "value": 18
+      },
+      "effect": {
+        "kind": "add_mult",
+        "value": 2000
+      },
+      "text": {
+        "fr": "Effacer en gardant 18 cases ou moins : +0,20 au Multiplicateur.",
+        "en": "Clear while keeping 18 cells or fewer: +0.20 Multiplier."
+      }
+    },
+    {
+      "id": "prism_mono",
+      "name": {
+        "fr": "Monochrome",
+        "en": "Monochrome"
+      },
+      "archetype": "prism",
+      "rarity": "common",
+      "trigger": "on_clear",
+      "condition": {
+        "kind": "line_mono"
+      },
+      "effect": {
+        "kind": "add_shards",
+        "value": 45
+      },
+      "text": {
+        "fr": "Ligne monochrome : +45 Éclats.",
+        "en": "Monochrome line: +45 Shards."
+      }
+    },
+    {
+      "id": "prism_hue",
+      "name": {
+        "fr": "Teinte",
+        "en": "Hue"
+      },
+      "archetype": "prism",
+      "rarity": "rare",
+      "trigger": "on_clear",
+      "condition": {
+        "kind": "line_color",
+        "color": 2
+      },
+      "effect": {
+        "kind": "mul_mult",
+        "valueBp": 13000
+      },
+      "text": {
+        "fr": "Ligne monochrome violette : Multiplicateur x1,30.",
+        "en": "Violet monochrome line: Multiplier x1.30."
+      }
+    },
+    {
+      "id": "joker_gamble",
+      "name": {
+        "fr": "Coup de poker",
+        "en": "Gamble"
+      },
+      "archetype": "joker",
+      "rarity": "common",
+      "trigger": "on_place",
+      "condition": {
+        "kind": "none"
+      },
+      "effect": {
+        "kind": "transform_random_piece"
+      },
+      "text": {
+        "fr": "Hasard : a chaque pose, une piece de la main change de couleur.",
+        "en": "Gamble: on every placement, a piece in hand changes colour."
+      }
+    },
+    {
+      "id": "joker_double",
+      "name": {
+        "fr": "Double",
+        "en": "Double"
+      },
+      "archetype": "joker",
+      "rarity": "rare",
+      "trigger": "on_clear",
+      "condition": {
+        "kind": "min_lines",
+        "value": 2
+      },
+      "effect": {
+        "kind": "add_shards",
+        "value": 12
+      },
+      "text": {
+        "fr": "Deux lignes ou plus d'un coup : +12 Éclats.",
+        "en": "Two or more lines at once: +12 Shards."
+      }
+    },
+    {
+      "id": "architect_shift",
+      "name": {
+        "fr": "Bascule",
+        "en": "Shift"
+      },
+      "archetype": "architect",
+      "rarity": "common",
+      "trigger": "on_clear",
+      "condition": {
+        "kind": "min_lines",
+        "value": 2
+      },
+      "effect": {
+        "kind": "transform_random_piece"
+      },
+      "text": {
+        "fr": "Double ligne : une pièce de la main change de couleur.",
+        "en": "Double line: a piece in hand changes colour."
+      }
+    },
+    {
+      "id": "architect_open",
+      "name": {
+        "fr": "Ouverture",
+        "en": "Opening"
+      },
+      "archetype": "architect",
+      "rarity": "rare",
+      "trigger": "on_round_end",
+      "condition": {
+        "kind": "none"
+      },
+      "effect": {
+        "kind": "add_mult",
+        "value": 1200
+      },
+      "text": {
+        "fr": "Fin de round réussi : +0,12 au Multiplicateur de base.",
+        "en": "Successful round: +0.12 base Multiplier."
+      }
+    },
+    {
+      "id": "dynamite_seal",
+      "name": {
+        "fr": "Scellement",
+        "en": "Seal"
+      },
+      "archetype": "dynamite",
+      "rarity": "common",
+      "trigger": "on_clear",
+      "condition": {
+        "kind": "min_lines",
+        "value": 3
+      },
+      "effect": {
+        "kind": "add_shards",
+        "value": 80
+      },
+      "text": {
+        "fr": "Trois lignes ou plus : +80 Éclats.",
+        "en": "Three or more lines: +80 Shards."
+      }
+    },
+    {
+      "id": "dynamite_rime",
+      "name": {
+        "fr": "Givre",
+        "en": "Rime"
+      },
+      "archetype": "dynamite",
+      "rarity": "legendary",
+      "trigger": "on_clear",
+      "condition": {
+        "kind": "min_lines",
+        "value": 2
+      },
+      "effect": {
+        "kind": "freeze_random_cell"
+      },
+      "text": {
+        "fr": "Double ligne : gèle une case remplie. Une relique, pas un don.",
+        "en": "Double line: freezes one filled cell. A relic, not a Donor."
+      }
+    }
+  ]
+}

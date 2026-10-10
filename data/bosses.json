@@ -1,0 +1,65 @@
+{
+  "version": "v0",
+  "bosses": [
+    {
+      "id": "boss_frost",
+      "kind": "frozen_cells",
+      "param": 6,
+      "color": null,
+      "text": {
+        "fr": "GIVRE — 6 cases sont gelées. Les lignes qui les traversent ne se complètent pas.",
+        "en": "FROST — 6 cells are frozen. Lines crossing them cannot complete."
+      }
+    },
+    {
+      "id": "boss_ultraviolet",
+      "kind": "forbidden_color",
+      "param": 0,
+      "color": 2,
+      "text": {
+        "fr": "ULTRAVIOLET — Le violet est interdit. Cette couleur ne peut pas être posée.",
+        "en": "ULTRAVIOLET — Violet is forbidden. That colour cannot be placed."
+      }
+    },
+    {
+      "id": "boss_tourbillon",
+      "kind": "rotating_pieces",
+      "param": 1,
+      "color": null,
+      "text": {
+        "fr": "TOURBILLON — Les pièces tournent de 90 degrés à chaque tour.",
+        "en": "WHIRLWIND — Pieces rotate 90 degrees every turn."
+      }
+    },
+    {
+      "id": "boss_etroitesse",
+      "kind": "sparse_bag",
+      "param": 3,
+      "color": null,
+      "text": {
+        "fr": "ÉTROITESSE — Le sac ne contient que des pièces de 3 cases ou moins.",
+        "en": "NARROWNESS — The bag only holds pieces of 3 cells or fewer."
+      }
+    },
+    {
+      "id": "boss_cendres",
+      "kind": "low_shards",
+      "param": 6000,
+      "color": null,
+      "text": {
+        "fr": "CENDRES — Les effacements rapportent 60 % des Eclats.",
+        "en": "ASHES — Clears yield only 60% of Shards."
+      }
+    },
+    {
+      "id": "boss_filature",
+      "kind": "narrow_lines",
+      "param": 0,
+      "color": null,
+      "text": {
+        "fr": "FILATURE — Les carrés 3x3 ne comptent plus. Lignes et colonnes seulement.",
+        "en": "SPINTHREAD — 3x3 squares no longer count. Rows and columns only."
+      }
+    }
+  ]
+}

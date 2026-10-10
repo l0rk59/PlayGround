@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#0b1020" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="description" content="SHARDLINE — pose des eclats, enchaine les lignes, bati un score absurde." />
+    <title>SHARDLINE</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b1020'/%3E%3Crect x='6' y='6' width='9' height='9' rx='2.5' fill='%23f2b33d'/%3E%3Crect x='17' y='6' width='9' height='9' rx='2.5' fill='%23a78bfa'/%3E%3Crect x='6' y='17' width='9' height='9' rx='2.5' fill='%234fd1e1'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./game/style.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="hud">
+        <div class="hud-row hud-top">
+          <span class="pill" id="round-pill">ROUND 1/3</span>
+          <span class="pill boss hidden" id="boss-pill">BOSS</span>
+          <span class="spacer"></span>
+          <span class="pill" id="moves-pill">24 COUPS</span>
+        </div>
+
+        <div class="score-block">
+          <div class="score-main">
+            <span class="score-value" id="score-value">0</span>
+            <span class="score-label">ECLATS</span>
+          </div>
+          <div class="mult-block">
+            <span class="mult-value" id="mult-value">x1.00</span>
+            <span class="mult-label">MULT</span>
+          </div>
+        </div>
+
+        <div class="objective">
+          <div class="objective-bar"><div class="objective-fill" id="objective-fill"></div></div>
+          <div class="objective-text">
+            <span id="objective-current">0</span>
+            <span class="objective-sep">/</span>
+            <span id="objective-target">150</span>
+            <span class="objective-note">objectif du round</span>
+          </div>
+        </div>
+
+        <div class="relic-strip" id="relic-strip"></div>
+      </header>
+
+      <main class="stage">
+        <canvas id="board"></canvas>
+        <div class="banner hidden" id="banner"></div>
+      </main>
+
+      <footer class="tray">
+        <div class="hand" id="hand"></div>
+      </footer>
+
+      <div class="overlay hidden" id="overlay">
+        <div class="panel" id="panel"></div>
+      </div>
+    </div>
+
+    <script type="module" src="./game/main.ts"></script>
+  </body>
+</html>
