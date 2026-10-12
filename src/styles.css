@@ -1,0 +1,38 @@
+:root { color-scheme: dark; --bg:#0f172a; --panel:#1e293b; --accent:#22c55e; --accent2:#f59e0b; }
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html,body { margin:0; padding:0; background:var(--bg); color:#e2e8f0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; overscroll-behavior:none; }
+#app { max-width:640px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column; }
+#topbar { display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:#020617; position:sticky; top:0; z-index:10; border-bottom:1px solid #334155; }
+.brand { font-weight:800; }
+.badge { font-size:11px; background:#334155; border-radius:999px; padding:2px 8px; margin-left:6px; }
+.btn { background:#334155; color:#fff; border:0; border-radius:10px; padding:10px 14px; font-size:15px; cursor:pointer; }
+.btn.primary { background:var(--accent); color:#052e16; font-weight:800; }
+.btn.danger { background:#7f1d1d; }
+.btn.small { padding:6px 10px; font-size:13px; }
+.btn.special { background:linear-gradient(135deg,#8b5cf6,#ec4899); font-weight:800; min-width:120px; }
+.btn:disabled { opacity:.5; }
+.screen { padding:14px 12px 28px; }
+.hidden { display:none !important; }
+.muted { color:#94a3b8; } .small { font-size:12px; }
+.class-grid { display:grid; grid-template-columns:1fr; gap:10px; margin:12px 0; }
+@media(min-width:520px){ .class-grid{ grid-template-columns:1fr 1fr 1fr; } }
+.class-card { background:var(--panel); border:2px solid transparent; border-radius:14px; padding:12px; cursor:pointer; }
+.class-card.selected { border-color:var(--accent); }
+.class-card h3 { margin:4px 0; } .class-card p { font-size:13px; color:#cbd5e1; margin:6px 0; }
+.row { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0; }
+.check { display:flex; gap:6px; align-items:center; }
+#hud { display:flex; justify-content:space-between; align-items:center; gap:8px; margin-bottom:8px; }
+.hp { position:relative; background:#334155; border-radius:999px; overflow:hidden; min-width:200px; height:26px; flex:1; }
+#hud-hp-fill { position:absolute; inset:0; width:100%; background:linear-gradient(90deg,#22c55e,#4ade80); }
+#hud-hp-text { position:relative; z-index:1; font-size:12px; font-weight:700; line-height:26px; padding-left:10px; color:#052e16; }
+#hud-info { margin-top:4px; }
+#stage-wrap { position:relative; background:#020617; border-radius:14px; overflow:hidden; border:1px solid #334155; touch-action:none; }
+#game { width:100%; height:auto; display:block; touch-action:none; }
+#toast { position:absolute; left:50%; top:12px; transform:translateX(-50%); background:#020617cc; padding:6px 12px; border-radius:999px; font-size:13px; display:none; }
+.wave-bar { display:flex; gap:6px; margin-top:8px; font-size:12px; color:#94a3b8; flex-wrap:wrap; }
+.cards { display:grid; gap:10px; }
+.card { background:var(--panel); border-radius:14px; padding:12px; }
+.card h2 { margin:0 0 8px; font-size:16px; }
+.inv-item { display:flex; justify-content:space-between; align-items:center; background:#0f172a; border-radius:10px; padding:8px 10px; margin:6px 0; font-size:14px; }
+.modal { position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:50; padding:16px; }
+.modal-card { background:var(--panel); border-radius:16px; padding:16px; max-width:420px; width:100%; }

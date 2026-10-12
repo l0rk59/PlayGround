@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="description" content="Refuge du Loup — tranche jouable mobile PWA : 3 classes, attaques auto, chien compagnon, boss, refuge." />
+  <title>Refuge du Loup — PWA jouable</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+  <link rel="apple-touch-icon" href="/icon-192.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="stylesheet" href="/src/styles.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <div class="brand">🐺 Refuge du Loup <span class="badge">PWA · Tranche 1</span></div>
+      <div class="top-actions">
+        <button id="btn-refuge" class="btn small" title="Rentrer au refuge à tout moment">🏕️ Refuge</button>
+        <button id="btn-save" class="btn small" title="Sauvegarder">💾</button>
+        <button id="btn-help" class="btn small" title="Aide">?</button>
+      </div>
+    </header>
+
+    <section id="screen-class" class="screen">
+      <h1>Choisis ta classe</h1>
+      <p class="muted">Sur mobile : glisse sur la zone de jeu pour te déplacer. L'arme tire automatiquement.</p>
+      <div id="class-grid" class="class-grid"></div>
+      <div class="row">
+        <label class="check"><input type="checkbox" id="opt-dog" checked /> 🐕 Chien compagnon</label>
+        <button id="btn-start" class="btn primary">⚔️ Partir en chasse</button>
+      </div>
+      <p id="save-note" class="muted"></p>
+      <div class="row">
+        <button id="btn-continue" class="btn">📂 Continuer la sauvegarde</button>
+        <button id="btn-wipe" class="btn danger">🗑️ Effacer</button>
+      </div>
+    </section>
+
+    <section id="screen-game" class="screen hidden">
+      <div id="hud">
+        <div class="hud-left">
+          <div id="hud-hp" class="hp"><div id="hud-hp-fill"></div><span id="hud-hp-text"></span></div>
+          <div id="hud-info" class="muted small"></div>
+        </div>
+        <div class="hud-right">
+          <button id="btn-special" class="btn special">✨ Spécial</button>
+        </div>
+      </div>
+      <div id="stage-wrap">
+        <canvas id="game" width="480" height="640"></canvas>
+        <div id="toast"></div>
+      </div>
+      <div id="controls-hint" class="muted small">Glisse pour bouger · attaque automatique · tue les monstres, affronte le boss vague 5</div>
+      <div id="wave-bar" class="wave-bar"></div>
+    </section>
+
+    <section id="screen-refuge" class="screen hidden">
+      <h1>🏕️ Refuge</h1>
+      <p class="muted">Repos, soins, inventaire et reliques. Repars quand tu veux.</p>
+      <div class="cards">
+        <div class="card">
+          <h2>État</h2>
+          <div id="refuge-stats"></div>
+          <div class="row">
+            <button id="btn-heal" class="btn primary">💚 Se soigner (gratuit)</button>
+            <button id="btn-go" class="btn">⚔️ Retourner chasser</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2>🎒 Inventaire</h2>
+          <div id="inventory-list"></div>
+        </div>
+        <div class="card">
+          <h2>🐕 Chien</h2>
+          <div id="dog-panel"></div>
+          <div class="row">
+            <button id="btn-dog-toggle" class="btn small">Activer / pause chien</button>
+            <button id="btn-dog-up" class="btn small">⬆️ Améliorer le chien</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div id="modal" class="modal hidden">
+      <div class="modal-card">
+        <h2 id="modal-title"></h2>
+        <div id="modal-body"></div>
+        <div class="row"><button id="modal-close" class="btn primary">OK</button></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
