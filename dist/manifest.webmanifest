@@ -1,0 +1,16 @@
+{
+  "name": "Refuge du Loup — PWA jouable",
+  "short_name": "Loup PWA",
+  "description": "Tranche jouable mobile : 3 classes, attaques auto, chien, boss, refuge, inventaire, sauvegarde locale.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
