@@ -188,6 +188,8 @@ export function rgba(css, alpha) {
  */
 export const ZONES = {
   valley: {
+    id: 'valley',
+    seed: 20251012,
     name: 'La Vallee Fracturee',
     sky: tone(HUE.ASH, 22, 0.14),
     fog: tone(HUE.ASH, 16, 0.22),
@@ -201,6 +203,8 @@ export const ZONES = {
     fogDensity: 0.5,
   },
   ash: {
+    id: 'ash',
+    seed: 777001,
     name: 'La Cendrerie',
     sky: tone(HUE.ASH, 14, 0.16),
     fog: tone(HUE.ASH, 12, 0.24),
@@ -214,6 +218,8 @@ export const ZONES = {
     fogDensity: 0.35,
   },
   anomaly: {
+    id: 'anomaly',
+    seed: 424242,
     name: 'La Faille',
     sky: tone(HUE.ANOMALY, 26, 0.09),
     fog: tone(HUE.ANOMALY, 34, 0.14),
@@ -227,6 +233,8 @@ export const ZONES = {
     fogDensity: 0.7,
   },
   refuge: {
+    id: 'refuge',
+    seed: 91337,
     name: 'Le Refuge',
     sky: tone(HUE.EMBER, 20, 0.1),
     fog: tone(HUE.EMBER, 24, 0.16),

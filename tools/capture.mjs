@@ -130,6 +130,41 @@ const run = async () => {
     note(px.bright > 60, `[${shot.name}] le joueur est visible`, `${px.bright} pixels de valeur haute`);
     note(errors.length === 0, `[${shot.name}] aucune erreur console`, errors.slice(0, 2).join(' / '));
 
+    // Animation : on deplace le joueur et on capture son cadre a plusieurs
+    // positions de cycle. Si les images sont identiques, le personnage
+    // glisse au lieu de marcher — c'est le defaut le plus visible et le
+    // plus facile a rater sur une capture unique.
+    const strip = await page.evaluate(async () => {
+      const g = globalThis.__refuge;
+      const s = g.renderer;
+      const c = document.getElementById('stage');
+      const crop = () => {
+        const px = Math.round((g.game.run.player.x - s.cam.x) * s.zoom + s.view.w / 2);
+        const py = Math.round((g.game.run.player.y - s.cam.y) * s.zoom + s.view.h / 2);
+        return c.getContext('2d').getImageData(px - 26, py - 44, 52, 52).data.join(',');
+      };
+      const out = document.createElement('canvas');
+      out.width = 52 * 6;
+      out.height = 52;
+      const octx = out.getContext('2d');
+      octx.fillStyle = '#202a38';
+      octx.fillRect(0, 0, out.width, out.height);
+      const hashes = [];
+      for (let i = 0; i < 6; i++) {
+        g.game.run.player.x += 15;
+        g.game.run.player.y += 7;
+        await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const px = Math.round((g.game.run.player.x - s.cam.x) * s.zoom + s.view.w / 2);
+        const py = Math.round((g.game.run.player.y - s.cam.y) * s.zoom + s.view.h / 2);
+        octx.drawImage(c, px - 26, py - 44, 52, 52, i * 52, 0, 52, 52);
+        hashes.push(crop());
+      }
+      out.dataset.hashes = JSON.stringify(hashes);
+      return { png: out.toDataURL('image/png'), distinct: new Set(hashes).size };
+    });
+    writeFileSync(join(OUT, `${shot.name}-walk.png`), Buffer.from(strip.png.split(',')[1], 'base64'));
+    note(strip.distinct >= 4, `[${shot.name}] le cycle de marche anime`, `${strip.distinct} poses distinctes sur 6`);
+
     const file = join(OUT, `${shot.name}.png`);
     await page.screenshot({ path: file, timeout: 30000 });
     note(true, `[${shot.name}] capture écrite`, file);

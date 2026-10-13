@@ -16,6 +16,8 @@ import { REGION, OBSTACLES, POIS } from '../data/world.js';
 import { CAMERA, EXTRACTION } from '../data/tuning.js';
 import { clamp, lerp } from '../core/util.js';
 import { actorSprite, blobShadow, glow, ring, hexAlpha } from './sprites.js';
+import { actorSheet } from './anim.js';
+import { groundTile, anomalyTile, Motes } from './texture.js';
 
 export class Renderer {
   constructor(canvas) {
@@ -32,6 +34,16 @@ export class Renderer {
     this.view = { w: 0, h: 0 };
     this.flash = 0;
     this.hitStop = 0;
+    /**
+     * Zoom camera. Un acteur de 42 unites dans une vue de 900 haut fait
+     * 4 % de l'ecran : on ne lit ni ses membres ni son orientation. On
+     * zoome donc la PRESENTATION, pas la simulation — aucune regle de
+     * jeu ne depend de l'echelle.
+     */
+    this.zoom = 1.45;
+    /** Poussieres en suspension : une couche, recyclee, jamais allouee par image. */
+    this.motes = new Motes(150);
+    this.motesReady = false;
     this.resize();
   }
 
@@ -54,8 +66,8 @@ export class Renderer {
     this.cam.x = lerp(this.cam.x, target.x + Math.cos(target.facing) * CAMERA.lookAhead, k);
     this.cam.y = lerp(this.cam.y, target.y + Math.sin(target.facing) * CAMERA.lookAhead, k);
     const b = REGION.bounds;
-    const halfW = this.view.w / 2;
-    const halfH = this.view.h / 2;
+    const halfW = this.view.w / (2 * this.zoom);
+    const halfH = this.view.h / (2 * this.zoom);
     this.cam.x = clamp(this.cam.x, b.minX + halfW, b.maxX - halfW);
     this.cam.y = clamp(this.cam.y, b.minY + halfH, b.maxY - halfH);
   }
@@ -76,57 +88,60 @@ export class Renderer {
     const zone = ZONES[zoneKey] ?? ZONES.valley;
     const w = b.maxX - b.minX;
     const h = b.maxY - b.minY;
-    const tile = 128;
+
+    // 1. Le sol, c'est une MATIERE. On peint une tuile raccordable, puis on
+    //    la repete sur toute la region. Un aplat uni donne immediatement
+    //    l'impression d'une maquette, meme avec de beaux personnages.
     const c = document.createElement('canvas');
     c.width = w;
     c.height = h;
     const g = c.getContext('2d');
 
-    // 1. LE SOL EST LA PAGE. Il doit pouvoir etre ennuyeux : c'est la
-    //    bande de valeur qui occupe le plus de surface, sans contraste
-    //    interne. Toute tache plus claire qu'un cran est une erreur.
-    g.fillStyle = zone.ground;
+    const tile = zoneKey === 'anomaly' ? anomalyTile(zone, 256) : groundTile(zone, 256);
+    const pattern = g.createPattern(tile, 'repeat');
+    g.fillStyle = pattern;
     g.fillRect(0, 0, w, h);
 
-    let seed = 20251012;
+    // 2. Deux passes de valeur grande echelle : des zones plus claires et
+    //    plus sombres. C'est ce qui arrete la repetition de se voir.
+    let seed = zone.seed ^ 0x5f3759df;
     const rnd = () => {
       seed = (seed * 1664525 + 1013904223) >>> 0;
       return seed / 4294967296;
     };
-
-    // 2. Grain de cendre, minuscule et tres bas contraste. Il donne la
-    //    matiere sans creer de motif que l'oeil pourrait lire comme un objet.
-    g.globalAlpha = 0.22;
-    for (let i = 0; i < 5200; i++) {
-      const x = rnd() * w;
-      const y = rnd() * h;
-      const r = 1.5 + rnd() * 5;
-      g.fillStyle = rnd() > 0.5 ? zone.groundAlt : zone.detail;
-      g.beginPath();
-      g.ellipse(x, y, r, r * 0.55, 0, 0, Math.PI * 2);
-      g.fill();
+    for (const [count, radius, color, alpha] of [
+      [26, 340, zone.detail, 0.1],
+      [22, 420, zone.sky, 0.16],
+    ]) {
+      for (let i = 0; i < count; i++) {
+        const x = rnd() * w;
+        const y = rnd() * h;
+        const r = radius * (0.6 + rnd() * 0.8);
+        const rg = g.createRadialGradient(x, y, 0, x, y, r);
+        rg.addColorStop(0, hexAlpha(color, alpha));
+        rg.addColorStop(1, hexAlpha(color, 0));
+        g.fillStyle = rg;
+        g.fillRect(x - r, y - r, r * 2, r * 2);
+      }
     }
 
-    // 3. Routes : des chemins de terre plus SOMBRES, jamais plus clairs.
-    //    Ce sont des lignes de conduite du regard, pas des decors.
-    g.globalAlpha = 0.28;
-    g.strokeStyle = zone.groundAlt;
-    g.lineWidth = 44;
+    // 3. Routes : plus SOMBRES, en troncons, avec un point de depart decale
+    //    par route. Sans ces trois details, on lit un asterisque, pas un chemin.
+    // Pistes de poussiere CLAIRES. Une route qui assombrit le sol devient
+    // une salete a l'ecran : le regard y va au lieu de suivre le joueur.
+    g.globalAlpha = 0.13;
+    g.strokeStyle = zone.detail;
+    g.lineWidth = 54;
     g.lineCap = 'round';
     g.lineJoin = 'round';
     for (const poi of POIS) {
-      // Chaque route part d'un point LEGEREMENT different du pad : sinon
-      // toutes se reunissent en un asterisque qui se lit comme un motif,
-      // pas comme un chemin.
-      const jitter = 70;
-      const sx = REGION.spawn.x + (rnd() - 0.5) * jitter;
-      const sy = REGION.spawn.y + (rnd() - 0.5) * jitter;
+      const sx = REGION.spawn.x + (rnd() - 0.5) * 80;
+      const sy = REGION.spawn.y + (rnd() - 0.5) * 80;
       const mx = (sx + poi.x) / 2 + (rnd() - 0.5) * 300;
       const my = (sy + poi.y) / 2 + (rnd() - 0.5) * 300;
-      // Route en troncons : les trous evitent le « rai » continu.
-      for (let k = 0; k < 9; k++) {
-        const t0 = k / 9 + rnd() * 0.02;
-        const t1 = Math.min(1, t0 + 0.055 + rnd() * 0.045);
+      for (let k = 0; k < 10; k++) {
+        const t0 = k / 10 + rnd() * 0.02;
+        const t1 = Math.min(1, t0 + 0.05 + rnd() * 0.05);
         g.beginPath();
         for (let t = t0; t <= t1; t += 0.02) {
           const it = 1 - t;
@@ -138,85 +153,13 @@ export class Renderer {
         g.stroke();
       }
     }
-
-    // 4. Habillage. Des props Parsemes, construits sur les trois faces du
-    //    meme vecteur de lumiere. Ils occupent les extremes de la scene :
-    //    c'est ce qui donne l'echelle et empeche le sol d'etre une page
-    //    vide. Aucun n'est un obstacle de gameplay — ils sont hors du
-    //    systeme de collision, sinon ils casseraient la lisibilite du combat.
-    const rock = (x, y, rw, rh) => {
-      g.globalAlpha = 0.9;
-      g.fillStyle = `hsl(214 10% 12%)`;
-      g.beginPath();
-      g.ellipse(x + rw * 0.28, y + rh * 0.5, rw * 1.05, rh * 0.72, 0, 0, Math.PI * 2);
-      g.fill();
-      g.fillStyle = `hsl(214 12% 33%)`;
-      g.beginPath();
-      g.ellipse(x, y, rw, rh, 0, Math.PI, Math.PI * 2);
-      g.rect(x - rw, y, rw * 2, rh);
-      g.fill();
-      g.fillStyle = `hsl(210 14% 52%)`;
-      g.beginPath();
-      g.ellipse(x - rw * 0.22, y - rh * 0.28, rw * 0.5, rh * 0.4, 0, 0, Math.PI * 2);
-      g.fill();
-      g.globalAlpha = 1;
-    };
-    const trunk = (x, y, h) => {
-      g.globalAlpha = 0.95;
-      g.strokeStyle = `hsl(24 12% 11%)`;
-      g.lineWidth = h * 0.16;
-      g.lineCap = 'round';
-      g.beginPath();
-      g.moveTo(x + h * 0.09, y);
-      g.quadraticCurveTo(x + h * 0.06, y - h * 0.6, x - h * 0.04, y - h);
-      g.stroke();
-      g.strokeStyle = `hsl(24 14% 34%)`;
-      g.lineWidth = h * 0.08;
-      g.beginPath();
-      g.moveTo(x + h * 0.03, y);
-      g.quadraticCurveTo(x + h * 0.02, y - h * 0.6, x - h * 0.05, y - h * 0.96);
-      g.stroke();
-      g.lineWidth = h * 0.05;
-      for (const a of [-0.7, 0.5, 1.2]) {
-        g.beginPath();
-        g.moveTo(x - h * 0.02, y - h * (0.72 + rnd() * 0.16));
-        g.lineTo(x - h * 0.02 + Math.cos(a) * h * 0.3, y - h * (0.86 + rnd() * 0.2));
-        g.stroke();
-      }
-      g.globalAlpha = 1;
-    };
-    const mound = (x, y, r) => {
-      g.globalAlpha = 0.55;
-      g.fillStyle = zone.groundAlt;
-      g.beginPath();
-      g.ellipse(x, y, r, r * 0.45, 0, 0, Math.PI * 2);
-      g.fill();
-      g.globalAlpha = 1;
-    };
-
-    const clear = (x, y, pad) => {
-      if (Math.hypot(x - REGION.spawn.x, y - REGION.spawn.y) < 260) return true;
-      for (const o of OBSTACLES) {
-        if (x > o.x - pad && x < o.x + o.w + pad && y > o.y - pad && y < o.y + o.h + pad) return true;
-      }
-      for (const poi of POIS) {
-        if (Math.hypot(x - poi.x, y - poi.y) < poi.radius * 0.8) return true;
-      }
-      return false;
-    };
-
-    for (let i = 0; i < 340; i++) {
-      const x = rnd() * w;
-      const y = rnd() * h;
-      if (clear(x, y, 70)) continue;
-      const roll = rnd();
-      if (roll < 0.5) rock(x, y, 9 + rnd() * 26, 5 + rnd() * 13);
-      else if (roll < 0.74) trunk(x, y, 60 + rnd() * 110);
-      else mound(x, y, 20 + rnd() * 46);
-    }
-
-    // 5. Bords du monde : un degrade sombre donne la limite sans mur invisible.
     g.globalAlpha = 1;
+
+    // 4. Habillage : des props qui portent les extremes de la scene. Sans
+    //    eux, le sol est une page et la profondeur n'existe pas.
+    this.paintProps(g, zone, rnd);
+
+    // 5. Limite du monde.
     const vig = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.6);
     vig.addColorStop(0, 'rgba(0,0,0,0)');
     vig.addColorStop(1, 'rgba(0,0,0,0.55)');
@@ -226,6 +169,136 @@ export class Renderer {
     this.ground = c;
     this.groundKey = zoneKey;
     this.zone = zone;
+  }
+
+  /** Rochers, arbres morts, souches : chacun sur les trois faces. */
+  paintProps(g, zone, rnd) {
+    const w = REGION.bounds.maxX;
+    const h = REGION.bounds.maxY;
+
+    const shadowOf = (x, y, rx, ry, a) => {
+      g.fillStyle = `rgba(0,0,0,${a})`;
+      g.beginPath();
+      g.ellipse(x + rx * 0.34, y + ry * 0.42, rx, ry, 0, 0, Math.PI * 2);
+      g.fill();
+    };
+
+    const rock = (x, y, rw, rh) => {
+      // Contour irregulier : une ellipse parfaite se lit comme un galet
+      // de billard, pas comme une roche.
+      const pts = [];
+      const n = 9;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        const k = 0.74 + rnd() * 0.5;
+        pts.push([Math.cos(a) * rw * k, Math.sin(a) * rh * k * 0.92]);
+      }
+      const path = (ox, oy) => {
+        g.beginPath();
+        g.moveTo(x + pts[0][0] + ox, y + pts[0][1] + oy);
+        for (let i = 1; i < n; i++) {
+          const p = pts[i];
+          const q = pts[(i + 1) % n];
+          g.quadraticCurveTo(x + p[0] + ox, y + p[1] + oy, x + (p[0] + q[0]) / 2 + ox, y + (p[1] + q[1]) / 2 + oy);
+        }
+        g.closePath();
+      };
+      shadowOf(x, y + rh * 0.4, rw * 1.05, rh * 0.55, 0.3);
+      path(0, rh * 0.18);
+      g.fillStyle = 'hsl(214 10% 11%)';
+      g.fill();
+      path(0, 0);
+      g.fillStyle = 'hsl(214 11% 22%)';
+      g.fill();
+      path(0, -rh * 0.22);
+      g.fillStyle = 'hsl(210 13% 38%)';
+      g.fill();
+      // Facette d'aération : le meme vecteur de lumiere, en une valeur de plus.
+      path(-rw * 0.24, -rh * 0.4);
+      g.fillStyle = 'hsl(206 16% 52%)';
+      g.fill();
+    };
+
+    const trunk = (x, y, th) => {
+      shadowOf(x, y, th * 0.2, th * 0.07, 0.34);
+      const branch = (bx, by, len, ang, wdt, depth) => {
+        const ex = bx + Math.cos(ang) * len;
+        const ey = by + Math.sin(ang) * len;
+        g.strokeStyle = depth > 1 ? 'hsl(24 10% 15%)' : 'hsl(24 12% 24%)';
+        g.lineWidth = wdt;
+        g.lineCap = 'round';
+        g.beginPath();
+        g.moveTo(bx, by);
+        g.quadraticCurveTo(bx + Math.cos(ang - 0.2) * len * 0.6, by + Math.sin(ang - 0.2) * len * 0.6, ex, ey);
+        g.stroke();
+        // Liseré clair cote lumiere.
+        g.strokeStyle = 'rgba(226,240,255,0.16)';
+        g.lineWidth = Math.max(0.8, wdt * 0.28);
+        g.beginPath();
+        g.moveTo(bx - wdt * 0.22, by);
+        g.lineTo(ex - wdt * 0.2, ey);
+        g.stroke();
+        if (depth <= 0) return;
+        const forks = depth > 2 ? 2 : 3;
+        for (let i = 0; i < forks; i++) {
+          branch(ex, ey, len * (0.52 + rnd() * 0.2), ang + (rnd() - 0.5) * 1.5 + (i - 1) * 0.5, wdt * 0.58, depth - 1);
+        }
+      };
+      branch(x, y, th * 0.42, -Math.PI / 2 + (rnd() - 0.5) * 0.22, th * 0.2, 3);
+    };
+
+    const stump = (x, y, r) => {
+      shadowOf(x, y + r * 0.3, r * 1.1, r * 0.4, 0.3);
+      g.fillStyle = 'hsl(24 12% 17%)';
+      g.beginPath();
+      g.ellipse(x, y, r, r * 0.7, 0, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = 'hsl(26 16% 34%)';
+      g.beginPath();
+      g.ellipse(x, y - r * 0.22, r * 0.92, r * 0.5, 0, 0, Math.PI * 2);
+      g.fill();
+      g.strokeStyle = 'hsl(26 18% 46%)';
+      g.lineWidth = 1;
+      for (let i = 1; i < 3; i++) {
+        g.beginPath();
+        g.ellipse(x, y - r * 0.22, r * 0.92 * (i / 3), r * 0.5 * (i / 3), 0, 0, Math.PI * 2);
+        g.stroke();
+      }
+    };
+
+    const clear = (x, y, pad) => {
+      if (Math.hypot(x - REGION.spawn.x, y - REGION.spawn.y) < 240) return true;
+      for (const o of OBSTACLES) {
+        if (x > o.x - pad && x < o.x + o.w + pad && y > o.y - pad && y < o.y + o.h + pad) return true;
+      }
+      for (const poi of POIS) {
+        if (Math.hypot(x - poi.x, y - poi.y) < poi.radius * 0.75) return true;
+      }
+      return false;
+    };
+
+    for (let i = 0; i < 460; i++) {
+      const x = rnd() * w;
+      const y = rnd() * h;
+      if (clear(x, y, 60)) continue;
+      const roll = rnd();
+      if (roll < 0.4) rock(x, y, 8 + rnd() * 30, 5 + rnd() * 16);
+      else if (roll < 0.62) trunk(x, y, 52 + rnd() * 120);
+      else if (roll < 0.82) stump(x, y, 7 + rnd() * 15);
+      else {
+        // Touffe d'herbe morte : trois courbes, rien de plus.
+        g.strokeStyle = `hsl(${28 + rnd() * 14} 12% ${18 + rnd() * 8}%)`;
+        g.lineWidth = 1.2;
+        for (let b = 0; b < 4; b++) {
+          const lean = (rnd() - 0.5) * 8;
+          g.beginPath();
+          g.moveTo(x + b * 2, y);
+          g.quadraticCurveTo(x + b * 2 + lean * 0.5, y - 7, x + b * 2 + lean, y - 12 - rnd() * 6);
+          g.stroke();
+        }
+      }
+    }
+    void zone;
   }
 
   /* ------------------------------------------------------------- DESSIN -- */
@@ -248,13 +321,19 @@ export class Renderer {
     ctx.fillStyle = this.zone.sky;
     ctx.fillRect(0, 0, w, h);
 
+    // Zoom porte par la transformee elle-meme : un seul point de depart
+    // pour le monde, et un reset net avant l'interface en espace ecran.
+    const z = this.zoom;
     ctx.save();
-    ctx.translate(w / 2 - camX, h / 2 - camY);
+    ctx.translate(w / 2, h / 2);
+    ctx.scale(z, z);
+    ctx.translate(-camX, -camY);
 
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(this.ground, 0, 0);
 
     this.drawObstacles(ctx);
+    this.drawMotes(ctx, state);
     this.drawExtraction(ctx, state);
     this.drawPoiMarkers(ctx, state);
     this.drawHazards(ctx, state);
@@ -268,6 +347,7 @@ export class Renderer {
     this.drawFx(ctx, state);
 
     ctx.restore();
+    ctx.setTransform(this.dpr, 0, 0, this.dpr, 0, 0);
 
     this.drawAtmosphere(ctx, w, h);
     if (input) this.drawTouchControls(ctx, input, w, h);
@@ -489,6 +569,29 @@ export class Renderer {
     }
   }
 
+  /**
+   * Poussiere en suspension. Une seule couche, pool fixe, recyclee : c'est
+   * ce qui donne de la profondeur a une scene sans nulla sur le budget.
+   */
+  drawMotes(ctx, state) {
+    if (!this.motesReady) {
+      this.motes.reset(Math.random, this.view.w, this.view.h);
+      this.motesReady = true;
+    }
+    this.motes.step(1 / 60, this.view.w, this.view.h, state.elapsed);
+    // Le vent emporte les poussieres a une vitesse propre : elles ne sont
+    // pas collees a la camera, sinon on lit le decalage au lieu du decor.
+    const wind = state.elapsed * 9;
+    this.motes.draw(
+      ctx,
+      glow(10, '#dfe7f2', 0.9),
+      this.view,
+      this.reducedEffects ? 0.16 : 0.32,
+      -((this.cam.x * this.zoom) % this.view.w) - wind * 0.4,
+      -((this.cam.y * this.zoom) % this.view.h) + wind * 0.25,
+    );
+  }
+
   /* ------------------------------------------------------------ OMBRES -- */
 
   drawShadows(ctx, state) {
@@ -511,39 +614,62 @@ export class Renderer {
 
   /* ------------------------------------------------------------ ACTEURS -- */
 
+  /**
+   * Dessine un acteur anime.
+   *
+   * La phase du cycle est derivee de la POSITION, pas d'un compteur : le
+   * personnage marche exactement a la vitesse a laquelle il se deplace,
+   * sans qu'aucun etat d'animation ne soit stocke par entite. Le pied
+   * glisse donc exactement autant que le corps.
+   */
   drawActor(ctx, e, spec, color, opts = {}) {
-    const sprite = actorSprite({ ...spec, color, trim: opts.trim });
-    // Le bob est derive du temps de partie : une phase stable, jamais un
-    // Math.random par image qui ferait vibrer tout le monde.
+    const kind = spec.shape;
+    const sheet = actorSheet(kind, spec, color);
     const t = opts.t ?? 0;
-    const bob = e.dead || e.down > 0 ? 0 : Math.sin(t * 6 + (e.x | 0) * 0.01) * 1.6;
+
+    // Phase : la distance parcourue pilote le cycle. La graine par acteur
+    // evite que toute une vague marche enperfectionsynchronisee.
+    const seed = ((e.id?.length ?? 0) * 7 + Math.round(e.x * 0.001)) % sheet.framesCount;
+    const phase = ((e.x * 0.055 + e.y * 0.031 + seed * 1.7) / sheet.w + 1) % 1;
+    const frame = Math.floor(phase * sheet.framesCount);
+
+    // Facing : on retourne la feuille plutot que de redessiner une pose.
+    const flip = Math.cos(e.facing ?? -Math.PI / 2) < 0;
+
     if (e.hitFlash > 0) {
       ctx.save();
       ctx.globalCompositeOperation = 'lighter';
-      ctx.drawImage(glow(110, '#ffffff', 0.55), e.x - 55, e.y - 80);
+      ctx.drawImage(glow(120, '#ffffff', 0.6), e.x - 60, e.y - 90);
       ctx.restore();
     }
+
     ctx.save();
     if (e.invulnerable && e.kind === 'player') {
-      // Les i-frames sont VISIBLES. Une invulnerabilite invisible teach
-      // au joueur qu'il a perdu des PV au hasard.
+      // Les i-frames sont VISIBLES. Une invulnerabilite invisible apprend
+      // au joueur qu'il perd des PV au hasard.
       ctx.globalCompositeOperation = 'lighter';
       ctx.drawImage(ring(spec.w * 2.4, SEMANTIC.ANOMALY, 5), e.x - spec.w * 1.2, e.y - spec.h * 1.2);
       ctx.globalCompositeOperation = 'source-over';
     }
     ctx.globalAlpha = opts.alpha ?? 1;
-    ctx.drawImage(sprite.canvas, e.x - sprite.ax, e.y - sprite.ay + bob);
+    if (flip) {
+      ctx.translate(e.x, 0);
+      ctx.scale(-1, 1);
+      ctx.translate(-e.x, 0);
+    }
+    sheet.draw(ctx, frame, e.x, e.y, 1);
     ctx.restore();
+    void t;
   }
 
   drawActors(ctx, state) {
     this.drawTelegraphs(ctx, state);
-    for (const e of state.enemies) {
+    // Tri par profondeur : les grands derriere, les petits devant. Sans
+    // cela deux ennemis qui se croisent se recouvrent dans le vide.
+    const sorted = [...state.enemies].sort((a, b) => a.y - b.y);
+    for (const e of sorted) {
       const spec = SILHOUETTE[e.def.id] ?? SILHOUETTE.player;
-      this.drawActor(ctx, e, spec, e.def.color, {
-        t: state.elapsed,
-        bubbles: e.family === 'errant' && e.def.id === 'plethore',
-      });
+      this.drawActor(ctx, e, spec, e.def.color, { t: state.elapsed });
     }
   }
 

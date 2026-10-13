@@ -18,6 +18,7 @@ import { createExpedition, step as simStep, drain as drainEvents, finish as fini
 import { lostOnDeath, upgradeCost } from './sim/rules.js';
 import { Renderer } from './render/renderer.js';
 import { actorSprite } from './render/sprites.js';
+import { actorSheet } from './render/anim.js';
 import { Input } from './ui/input.js';
 import { Screens, paintTitle, paintClasses, paintBrief, paintRefuge, paintJournal, paintSettings, paintResult, $ } from './ui/screens.js';
 import { Audio, requestWakeLock, haptic } from './audio/audio.js';
@@ -638,7 +639,7 @@ async function boot() {
 
   // Poignee d'inspection : le harnais de captures et les tests de fumée ont
   // besoin de lire l'etat sans passer par l'interface.
-  globalThis.__refuge = { game, renderer, screens, audio, sprites: { actorSprite } };
+  globalThis.__refuge = { game, renderer, screens, audio, sprites: { actorSprite, actorSheet } };
 
   registerServiceWorker();
 }

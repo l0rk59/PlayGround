@@ -81,11 +81,66 @@ Rapport de composition dans une image : **60 % dominante, 30 % secondaire,
   pré-calculé en `lighter`.
 - **Obligatoire :** tout ce qui change est pré-rendu une fois dans un canvas
   hors écran, puis dessiné en un seul `drawImage`.
-- **Sol :** peint une fois dans un tampon de la taille du monde, puis blitté.
-  Un `fillRect` par tuile à 60 fps est ce qui tue le budget d'image.
+- **Sol :** tuile raccordable de 256 px, peinte une fois, répétée sur toute la
+  région. Un `fillRect` par tuile à 60 fps est ce qui tue le budget d'image.
 - **Ombres :** ellipse écrasée pré-rendue, décalée selon le vecteur de lumière.
 - **Vignettage :** deux couches, une froide et une chaude, pour que la
   profondeur se lise même sans ombres portées.
+- **Zoom caméra : ×1,45, appliqué dans la transformée. Un acteur de 42 unités
+  dans une vue de 900 fait 4 % de l'écran : on ne lit ni ses membres ni son
+  orientation. On zoome la *présentation*, jamais la simulation.
+
+### 6.1 Le sol est une matière
+
+Un aplat uniforme donne l'impression d'une maquette même avec des
+personnages bien dessinés. Le sol est une tuile de 256 px composée de :
+
+1. **Bruit de valeur fBm** — 4 octaves larges + 5 fines, mélangés vers la
+   lumière ou vers l'ombre. Grain réel, pas une texture plaquée.
+2. **Gravier** — 300 cailloux, chacun avec une ombre et un dessus clair dans
+   le même axe de lumière que le reste.
+3. **Fissures** — traits à angles changeants, avec une arête claire au-dessus
+   de la crevasse. C'est ce qui dit « sol dur » plutôt que « dessin ».
+4. **Traînées de cendre** — fines, dans un sens, comme si le vent les avait
+   posées. C'est ce qui casse l'aspect « bruit uniforme ».
+
+**La tuile doit être raccordable.** Le bruit est périodique par construction :
+la grille se replie sur elle-même, et chaque forme est redessinée à ses neuf
+positions voisines. Une couture se voit immédiatement comme une ligne claire
+répétée tous les 256 pixels.
+
+### 6.2 L'animation
+
+Un personnage qui glisse en oscillant de deux pixels n'est pas un personnage
+animé. **Huit poses par acteur**, pré-rendues une fois dans une feuille de
+sprites, composées en un seul `drawImage` avec un sous-rectangle.
+
+- **La phase vient de la position, pas d'un compteur.** Le personnage marche
+  exactement à la vitesse à laquelle il se déplace, et aucun état
+  d'animation n'est stocké par entité.
+- **Quatre temps** : contact, passage, contact opposé, passage.
+- **Le buste monte deux fois plus vite que les jambes** : ce micro-rebond
+  donne le poids.
+- **La foulée ne dépasse jamais la longueur de la jambe.** Une foulée plus
+  longue met le personnage en fente et la silhouette lit « pantin » plutôt
+  que « marcheur ». C'est vérifié par test.
+- **Bras suspendus le long du buste**, pas écartés à l'horizontale : une
+  épaule tracée vers l'extérieur donne une silhouette d'épouvantail.
+- **Familles de forme** : humanoïde (hanches, jambes articulées, manteau),
+  massif (compression / étirement, pustules qui suivent la déformation),
+  quadrupède (galop, diagonales synchronisées, regard).
+
+### 6.3 Atmosphère
+
+- **Poussières en suspension** — pool de taille fixe recyclé, jamais alloué
+  par image. Défilement propre à la caméra : si les particules suivaient la
+  caméra exactement, on lirait le décalage au lieu du décor.
+- **Routes** — traces de poussière *claires*. Une route qui assombrit le sol
+  devient une saleté à l'écran : l'œil y va au lieu de suivre le joueur.
+- **Habillage** — rochers à facettes, arbres ramifiés récursifs, souches à
+  cercles de croissance, touffes d'herbe morte. Tous construits sur les
+  trois faces du même vecteur de lumière, aucun n'est un obstacle de
+  gameplay.
 
 ## 7. Lisibilité — les trois ancres
 
