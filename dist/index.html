@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>PlayGround — Mini 3D Cube Game (Desktop)</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #0b1020; color: #e8ecf8;
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  header { display: flex; gap: 12px; align-items: center; padding: 12px 16px;
+    background: rgba(10,14,30,.85); border-bottom: 1px solid #263; z-index: 2; }
+  header h1 { font-size: 16px; margin: 0; font-weight: 700; }
+  header .sub { font-size: 12px; opacity: .7; }
+  #hud { margin-left: auto; display: flex; gap: 14px; font-size: 13px; font-variant-numeric: tabular-nums; }
+  #hud b { color: #7df9ff; }
+  #wrap { position: relative; flex: 1; min-height: 0; }
+  #game { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+    background: radial-gradient(1200px 700px at 50% 30%, #1b2a5e 0%, #0b1020 60%, #05070f 100%); }
+  #overlay { position: absolute; left: 12px; bottom: 12px; max-width: 420px;
+    background: rgba(5,8,18,.72); border: 1px solid rgba(125,249,255,.25);
+    border-radius: 10px; padding: 10px 12px; font-size: 13px; line-height: 1.45; z-index: 2; }
+  #overlay kbd { background: #1c2440; border: 1px solid #3a4670; border-radius: 4px; padding: 0 5px; font-size: 12px; }
+  #toast { position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
+    background: rgba(125,249,255,.14); border: 1px solid rgba(125,249,255,.4);
+    padding: 6px 12px; border-radius: 999px; font-size: 13px; z-index: 2; }
+  button { background: #22d3ee; border: 0; color: #04202a; font-weight: 700;
+    border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+  button:hover { filter: brightness(1.1); }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>PlayGround 3D <span class="sub">desktop mini-game · drag to orbit · click / Space to burst</span></h1>
+    <div id="hud"><span>Score <b id="score">0</b></span><span>Cubes <b id="count">0</b></span><span>FPS <b id="fps">—</b></span></div>
+  </header>
+  <div id="wrap">
+    <canvas id="game"></canvas>
+    <div id="toast">Rendered locally · no build step</div>
+    <div id="overlay">
+      <div><b>How to play:</b> drag to orbit, wheel to zoom, <kbd>Space</kbd> or click to burst new cubes. Desktop keyboard + mouse.</div>
+      <div style="margin-top:8px"><button id="burst">Burst cubes</button> <button id="reset">Reset</button></div>
+    </div>
+  </div>
+</div>
+<script type="importmap">{ "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js" } }</script>
+<script type="module">
+  const scoreEl = document.getElementById('score');
+  const countEl = document.getElementById('count');
+  const fpsEl = document.getElementById('fps');
+  const canvas = document.getElementById('game');
+  let score = 0, cubes = [], fpsFrames = 0, fpsLast = performance.now();
+  function setScore(n){ score = n; scoreEl.textContent = String(n); }
+  function setCount(n){ countEl.textContent = String(n); }
+
+  // Try Three.js first; fall back to a dependency-free 2D canvas game so the
+  // page always renders (offline CI, blocked CDN, etc.).
+  try {
+    const THREE = await import('three');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    const scene = new THREE.Scene();
+    scene.fog = new THREE.Fog(0x0b1020, 8, 26);
+    const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 100);
+    camera.position.set(4.2, 3.0, 6.2);
+    scene.add(new THREE.AmbientLight(0x8899ff, 0.7));
+    const sun = new THREE.DirectionalLight(0xffffff, 1.4);
+    sun.position.set(5, 8, 4); scene.add(sun);
+    const grid = new THREE.GridHelper(20, 20, 0x22d3ee, 0x1e2a55);
+    scene.add(grid);
+    const heroGeo = new THREE.BoxGeometry(1.4, 1.4, 1.4);
+    const heroMat = new THREE.MeshStandardMaterial({ color: 0x22d3ee, roughness: .3, metalness: .6 });
+    const hero = new THREE.Mesh(heroGeo, heroMat);
+    hero.position.y = 1.2; scene.add(hero);
+    function spawn(n = 6) {
+      for (let i = 0; i < n; i++) {
+        const s = .25 + Math.random() * .8;
+        const m = new THREE.Mesh(
+          new THREE.BoxGeometry(s, s, s),
+          new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff, roughness: .4, metalness: .3 }));
+        m.position.set((Math.random() - .5) * 9, .4 + Math.random() * 3.4, (Math.random() - .5) * 9);
+        m.userData.spin = { x: (Math.random() - .5) * 2, y: (Math.random() - .5) * 2 };
+        scene.add(m); cubes.push(m);
+      }
+      setScore(score + n * 10); setCount(cubes.length);
+    }
+    function reset() { for (const c of cubes) { scene.remove(c); c.geometry.dispose(); } cubes = []; setScore(0); setCount(0); }
+    document.getElementById('burst').onclick = () => spawn(8);
+    document.getElementById('reset').onclick = reset;
+    addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); spawn(6); } });
+    canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); spawn(3); });
+    let yaw = .6, pitch = .45, dist = 8, dragging = false, px = 0, py = 0;
+    canvas.addEventListener('pointerdown', e => { dragging = true; px = e.clientX; py = e.clientY; });
+    addEventListener('pointerup', () => dragging = false);
+    addEventListener('pointermove', e => {
+      if (!dragging) return;
+      yaw -= (e.clientX - px) * .008; pitch = Math.min(1.3, Math.max(.1, pitch + (e.clientY - py) * .006));
+      px = e.clientX; py = e.clientY;
+    });
+    canvas.addEventListener('wheel', e => { e.preventDefault(); dist = Math.min(18, Math.max(4, dist + e.deltaY * .01)); }, { passive: false });
+    function resize() {
+      const r = canvas.parentElement.getBoundingClientRect();
+      renderer.setSize(r.width, r.height, false);
+      camera.aspect = r.width / Math.max(1, r.height); camera.updateProjectionMatrix();
+    }
+    addEventListener('resize', resize); resize(); spawn(10);
+    let t = 0;
+    renderer.setAnimationLoop(() => {
+      t += .016;
+      hero.rotation.x = t * .7; hero.rotation.y = t;
+      hero.position.y = 1.2 + Math.sin(t * 2) * .18;
+      for (const c of cubes) { c.rotation.x += c.userData.spin.x * .016; c.rotation.y += c.userData.spin.y * .016; }
+      camera.position.set(Math.cos(yaw) * Math.cos(pitch) * dist, Math.sin(pitch) * dist + .8, Math.sin(yaw) * Math.cos(pitch) * dist);
+      camera.lookAt(0, 1, 0);
+      renderer.render(scene, camera);
+      fpsFrames++; const now = performance.now();
+      if (now - fpsLast > 500) { fpsEl.textContent = String(Math.round(fpsFrames * 1000 / (now - fpsLast))); fpsFrames = 0; fpsLast = now; }
+    });
+  } catch (err) {
+    // 2D fallback: still an interactive game with real rendering.
+    console.warn('three.js unavailable, using 2D fallback', err);
+    const ctx = canvas.getContext('2d');
+    let parts = [];
+    function burst(n = 24) {
+      const r = canvas.getBoundingClientRect();
+      for (let i = 0; i < n; i++) parts.push({ x: r.width / 2, y: r.height / 2,
+        vx: (Math.random() - .5) * 9, vy: (Math.random() - .5) * 9, s: 4 + Math.random() * 14,
+        c: `hsl(${Math.random() * 360},90%,60%)`, a: 1 });
+      setScore(score + n); setCount(parts.length);
+    }
+    document.getElementById('burst').onclick = () => burst();
+    document.getElementById('reset').onclick = () => { parts = []; setScore(0); setCount(0); };
+    addEventListener('keydown', e => { if (e.code === 'Space') { e.preventDefault(); burst(); } });
+    canvas.addEventListener('pointerdown', burst);
+    function frame() {
+      const r = canvas.parentElement.getBoundingClientRect();
+      canvas.width = r.width; canvas.height = r.height;
+      ctx.fillStyle = '#0b1020'; ctx.fillRect(0, 0, r.width, r.height);
+      ctx.save(); ctx.translate(r.width / 2, r.height / 2);
+      const t = performance.now() / 1000;
+      ctx.strokeStyle = '#22d3ee'; ctx.lineWidth = 3;
+      const s = 70 + Math.sin(t * 2) * 8;
+      ctx.save(); ctx.rotate(t * .6);
+      // isometric-ish cube outline
+      ctx.strokeRect(-s / 2, -s / 2, s, s);
+      ctx.beginPath(); ctx.moveTo(-s/2,-s/2); ctx.lineTo(-s/2+22,-s/2-22); ctx.lineTo(s/2+22,-s/2-22); ctx.lineTo(s/2,-s/2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(s/2,-s/2); ctx.lineTo(s/2+22,-s/2-22); ctx.lineTo(s/2+22,s/2-22); ctx.lineTo(s/2,s/2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(-s/2+22,-s/2-22); ctx.lineTo(-s/2+22,s/2-22); ctx.lineTo(-s/2,s/2); ctx.stroke();
+      ctx.restore(); ctx.restore();
+      parts = parts.filter(p => p.a > .02);
+      for (const p of parts) { p.x += p.vx; p.y += p.vy; p.vy += .12; p.a *= .985;
+        ctx.globalAlpha = p.a; ctx.fillStyle = p.c; ctx.fillRect(p.x, p.y, p.s, p.s); }
+      ctx.globalAlpha = 1; setCount(parts.length);
+      fpsFrames++; const now = performance.now();
+      if (now - fpsLast > 500) { fpsEl.textContent = String(Math.round(fpsFrames * 1000 / (now - fpsLast))); fpsFrames = 0; fpsLast = now; }
+      requestAnimationFrame(frame);
+    }
+    burst(30); frame();
+  }
+</script>
+</body>
+</html>
