@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no, maximum-scale=1" />
+<meta name="theme-color" content="#0d1016" />
+<meta name="description" content="Dernier Refuge — action-survie solo dans un monde post-apocalyptique. Un refuge heredite, une valley fracturee, une verite a reconstituer." />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/icons/icon-192.png" />
+<link rel="apple-touch-icon" href="/icons/icon-192.png" />
+<title>Dernier Refuge</title>
+</head>
+<body>
+<div id="app">
+  <canvas id="stage" aria-label="Zone de jeu" role="img"></canvas>
+
+  <!-- Voile d'ecran : le bandeau du haut, toujours atteignable au pouce. -->
+  <button id="pauseBtn" class="hud-btn" type="button" aria-label="Pause">❚❚</button>
+
+  <div id="hud" class="hud" aria-live="polite">
+    <div id="objective" class="objective" hidden>
+      <span class="objective-kind">LIEU</span>
+      <strong id="objectiveName"></strong>
+      <span id="objectiveText"></span>
+    </div>
+    <div id="banner" class="banner" hidden></div>
+    <div id="toasts" class="toasts"></div>
+  </div>
+
+  <!-- Ecran de chargement -->
+  <section id="screenLoading" class="screen">
+    <div class="panel">
+      <h1 class="title">Dernier Refuge</h1>
+      <p class="muted">Chargement…</p>
+    </div>
+  </section>
+
+  <!-- Titre -->
+  <section id="screenTitle" class="screen" hidden>
+    <div class="panel panel--wide">
+      <p class="eyebrow">Action-survie · solo · Android</p>
+      <h1 class="title">Dernier Refuge</h1>
+      <p class="lede">Une maison que tu connais sans te rappeler pourquoi. Elle ne devrait pas avoir survécu.</p>
+      <div class="stack">
+        <button id="btnContinue" class="primary" type="button" hidden>Continuer</button>
+        <button id="btnNew" class="primary" type="button">Nouvelle partie</button>
+        <button id="btnSettings" class="ghost" type="button">Réglages</button>
+        <button id="btnJournalTitle" class="ghost" type="button">Journal</button>
+        <button id="btnHowto" class="ghost" type="button">Commandes</button>
+      </div>
+      <p id="saveState" class="muted small"></p>
+    </div>
+  </section>
+
+  <!-- Choix de classe -->
+  <section id="screenClass" class="screen" hidden>
+    <div class="panel panel--wide">
+      <h2>Qui remonte jusqu'à la maison ?</h2>
+      <div id="classList" class="class-list"></div>
+      <button id="btnClassBack" class="ghost" type="button">Retour</button>
+    </div>
+  </section>
+
+  <!-- Briefing d'expedition -->
+  <section id="screenBrief" class="screen" hidden>
+    <div class="panel panel--wide">
+      <p class="eyebrow">Expédition</p>
+      <h2 id="briefTitle"></h2>
+      <p id="briefText" class="lede"></p>
+      <ul id="briefList" class="brief-list"></ul>
+      <div class="stack row">
+        <button id="btnDeploy" class="primary" type="button">Partir</button>
+        <button id="btnBriefBack" class="ghost" type="button">Retour</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Refuge -->
+  <section id="screenRefuge" class="screen" hidden>
+    <div class="panel panel--wide">
+      <div class="row space">
+        <div>
+          <p class="eyebrow">Le Refuge</p>
+          <h2 id="refugeLevel">Niveau 1</h2>
+        </div>
+        <div class="purse"><span id="refugeScrap">0</span> <small>ferraille</small></div>
+      </div>
+      <div id="refugeStatus" class="status"></div>
+      <div id="refugeUpgrades" class="upgrade-list"></div>
+      <div id="refugeSurvivors" class="survivors"></div>
+      <div class="stack row">
+        <button id="btnMedkit" class="ghost" type="button">Soin</button>
+        <button id="btnReforge" class="ghost" type="button">Refondre</button>
+        <button id="btnDeploy2" class="primary" type="button">Partir en expédition</button>
+        <button id="btnTitle" class="ghost" type="button">Titre</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Journal / decouvertes -->
+  <section id="screenJournal" class="screen" hidden>
+    <div class="panel panel--wide">
+      <h2>Journal</h2>
+      <div id="journalList" class="journal"></div>
+      <button id="btnJournalBack" class="ghost" type="button">Retour</button>
+    </div>
+  </section>
+
+  <!-- Pause -->
+  <section id="screenPause" class="screen" hidden>
+    <div class="panel">
+      <h2>Pause</h2>
+      <div class="stack">
+        <button id="btnResume" class="primary" type="button">Reprendre</button>
+        <button id="btnPauseSettings" class="ghost" type="button">Réglages</button>
+        <button id="btnAbort" class="ghost danger" type="button"> Abandonner l'expédition</button>
+      </div>
+      <p class="muted small">Abandonner compte comme une défaite.</p>
+    </div>
+  </section>
+
+  <!-- Reglages -->
+  <section id="screenSettings" class="screen" hidden>
+    <div class="panel panel--wide">
+      <h2>Réglages</h2>
+      <div id="settingsList" class="settings"></div>
+      <button id="btnSettingsBack" class="ghost" type="button">Retour</button>
+    </div>
+  </section>
+
+  <!-- Commandes -->
+  <section id="screenHowto" class="screen" hidden>
+    <div class="panel panel--wide">
+      <h2>Commandes</h2>
+      <ul class="howto">
+        <li><strong>Déplacer</strong> — glisser n'importe où sur la moitié gauche. Le stick apparaît sous le doigt et disparaît quand on lâche.</li>
+        <li><strong>Esquiver</strong> — bouton <code>↷</code> ou <kbd>Espace</kbd>. Une courte fenêtre d'invulnérabilité : traverser, pas disparaître.</li>
+        <li><strong>Tir</strong> — automatique sur la cible visible la plus proche. Aucun bouton, aucune visée.</li>
+        <li><strong>Capacité</strong> — bouton <code>✦</code> ou <kbd>Maj</kbd>. Une seule par classe.</li>
+        <li><strong>Soin</strong> — bouton <code>+</code> ou <kbd>Q</kbd>. Long délai : c'est une décision.</li>
+        <li><strong>Pause</strong> — bouton en haut à droite, toujours visible.</li>
+      </ul>
+      <p class="muted">On joue en paysage. Si l'écran est vertical, l game's te le dira.</p>
+      <button id="btnHowtoBack" class="ghost" type="button">Retour</button>
+    </div>
+  </section>
+
+  <!-- Fin de run -->
+  <section id="screenResult" class="screen" hidden>
+    <div class="panel panel--wide">
+      <p id="resultKind" class="eyebrow"></p>
+      <h2 id="resultTitle"></h2>
+      <p id="resultText" class="lede"></p>
+      <div id="resultStats" class="stats"></div>
+      <div id="resultReward" class="reward"></div>
+      <div class="stack row">
+        <button id="btnResultNext" class="primary" type="button">Retour au refuge</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Porte d'orientation -->
+  <section id="screenRotate" class="screen screen--opaque" hidden>
+    <div class="panel">
+      <div class="rotate-icon" aria-hidden="true">▭</div>
+      <h2>Tourne ton téléphone</h2>
+      <p class="muted">Dernier Refuge se joue en paysage.</p>
+    </div>
+  </section>
+</div>
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

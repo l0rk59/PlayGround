@@ -1,0 +1,8 @@
+# L'APK est un binaire : aucune normalisation, aucun diff textuel.
+*.apk binary
+*.png binary
+*.woff2 binary
+
+# deflate deja fait par Vite : pas de gain a recompresser
+dist/assets/*.js -diff
+dist/assets/*.css -diff

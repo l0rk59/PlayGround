@@ -1,0 +1,27 @@
+{
+  "name": "dernier-refuge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Dernier Refuge \u2014 action-survie solo, monde post-apocalyptique, refuge heredite, horreur graduelle. Vertical slice web/Android.",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "node tools/gen-assets.mjs && vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "node --test \"tests/**/*.test.js\"",
+    "assets": "node tools/gen-assets.mjs",
+    "capture": "node tools/capture.mjs",
+    "android:sync": "npm run build && cap sync android",
+    "android:apk": "npm run build && cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
+    "vite": "^5.4.11"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

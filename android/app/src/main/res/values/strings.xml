@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Dernier Refuge</string>
+    <string name="title_activity_main">Dernier Refuge</string>
+    <string name="package_name">com.dernierrefuge.jeu</string>
+    <string name="custom_url_scheme">com.dernierrefuge.jeu</string>
+</resources>

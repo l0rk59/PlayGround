@@ -1,0 +1,19 @@
+node_modules/
+dist/
+screenshots/
+
+# Artefacts de build Android — le projet, lui, est versionne.
+android/build/
+android/app/build/
+android/.gradle/
+android/local.properties
+android/app/src/main/assets/public/
+android/app/src/main/assets/capacitor.config.json
+android/app/src/main/assets/capacitor.plugins.json
+android/app/capacitor.build.gradle
+android/capacitor.settings.gradle
+*.apk.idsig
+
+.DS_Store
+.vite/
+*.log

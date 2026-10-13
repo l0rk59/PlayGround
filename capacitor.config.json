@@ -1,0 +1,14 @@
+{
+  "appId": "com.dernierrefuge.jeu",
+  "appName": "Dernier Refuge",
+  "webDir": "dist",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false,
+    "backgroundColor": "#0d1016"
+  },
+  "server": {
+    "androidScheme": "https"
+  }
+}
