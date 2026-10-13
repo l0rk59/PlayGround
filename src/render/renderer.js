@@ -510,42 +510,100 @@ export class Renderer {
 
   /* ---------------------------------------------------- TELEGRAPHIES -- */
 
+  /**
+   * TELEGRAPHIES.
+   *
+   * La forme dit QUEL coup, la pulsation dit QUAND. Un cercle plein pour
+   * tout le monde ne donne aucune information : le joueur ne peut ni se
+   * placer ni choisir une esquive, il peut seulement courir.
+   *
+   *   disc  — frappe au corps a corps, zone ronde centree sur l'ennemi
+   *   burst — explosion, cercle large a double anneau
+   *   line  — tir rapide, cône très étroit dans la direction visée
+   *   beam  — faisceau, rectangle long et étroit
+   *   sweep — balayage du boss, secteur très large
+   *
+   * La couleur reste identique partout : elle signifie « danger », pas
+   * « quel coup ». C'est la forme qui porte la difference.
+   */
   drawTelegraphs(ctx, state) {
-    const drawCone = (x, y, facing, range, halfAngle, progress) => {
-      const a = progress * 0.5 + 0.5;
+    const frame = (shape, x, y, facing, size, progress, strong) => {
+      const charge = progress * progress;
       ctx.save();
-      ctx.globalAlpha = 0.2 + a * 0.5;
+      // Remplissage volontairement faible : cinq zones superposees
+      // masqueraient completement le joueur, qui est justement ce qu'on
+      // doit voir au moment de la telegraphie.
+      const base = 0.1 + charge * 0.24;
       ctx.fillStyle = SEMANTIC.DANGER;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.arc(x, y, range, facing - halfAngle, facing + halfAngle);
-      ctx.closePath();
-      ctx.fill();
-      ctx.globalAlpha = 0.9;
       ctx.strokeStyle = SEMANTIC.DANGER_SOFT;
-      ctx.lineWidth = 3;
-      ctx.setLineDash([9, 7]);
-      ctx.lineDashOffset = -progress * 40;
-      ctx.stroke();
-      ctx.restore();
-    };
 
-    const drawCircle = (x, y, radius, progress) => {
-      ctx.save();
-      ctx.globalAlpha = 0.22 + progress * 0.45;
-      ctx.strokeStyle = SEMANTIC.DANGER;
-      ctx.lineWidth = 4;
-      ctx.beginPath();
-      ctx.arc(x, y, radius, 0, Math.PI * 2);
-      ctx.stroke();
-      // Remplissage progressif : la charge se lit meme sans couleur.
-      ctx.globalAlpha = 0.16;
-      ctx.fillStyle = SEMANTIC.DANGER;
-      ctx.beginPath();
-      ctx.moveTo(x, y);
-      ctx.arc(x, y, radius, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
-      ctx.closePath();
-      ctx.fill();
+      if (shape === 'disc' || shape === 'burst') {
+        const r = size;
+        ctx.globalAlpha = base * (strong ? 1.15 : 1);
+        ctx.beginPath();
+        ctx.arc(x, y, r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 0.5 + charge * 0.5;
+        ctx.lineWidth = shape === 'burst' ? 5 : 3;
+        ctx.setLineDash(shape === 'burst' ? [12, 8] : []);
+        ctx.stroke();
+        if (shape === 'burst') {
+          // Double anneau : l'explosion est plus large et plus lente.
+          ctx.globalAlpha = 0.35 + charge * 0.45;
+          ctx.beginPath();
+          ctx.arc(x, y, r * 0.62, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        // Remplissage qui se remplit : la charge se lit meme sans couleur.
+        ctx.globalAlpha = 0.14 + charge * 0.24;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.arc(x, y, r, -Math.PI / 2, -Math.PI / 2 + progress * Math.PI * 2);
+        ctx.closePath();
+        ctx.fill();
+      } else if (shape === 'line' || shape === 'beam') {
+        const len = size;
+        const half = shape === 'beam' ? 15 : size * 0.09;
+        ctx.translate(x, y);
+        ctx.rotate(facing);
+        ctx.globalAlpha = base * 0.9;
+        ctx.fillRect(0, -half, len, half * 2);
+        ctx.globalAlpha = 0.55 + charge * 0.45;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, -half);
+        ctx.lineTo(len, -half);
+        ctx.moveTo(0, half);
+        ctx.lineTo(len, half);
+        ctx.stroke();
+        if (shape === 'beam') {
+          // Traits de charge le long du faisceau : on voit venir.
+          ctx.globalAlpha = 0.3 + charge * 0.5;
+          ctx.lineWidth = 3;
+          const seg = 26;
+          for (let d = 30; d < len; d += seg) {
+            if ((d / seg) % 2) continue;
+            ctx.beginPath();
+            ctx.moveTo(d, -half);
+            ctx.lineTo(d + seg * 0.6, -half);
+            ctx.moveTo(d, half);
+            ctx.lineTo(d + seg * 0.6, half);
+            ctx.stroke();
+          }
+        }
+      } else if (shape === 'sweep') {
+        ctx.globalAlpha = base * 0.9;
+        ctx.beginPath();
+        ctx.moveTo(x, y);
+        ctx.arc(x, y, size, facing - half, facing + half);
+        ctx.closePath();
+        ctx.fill();
+        ctx.globalAlpha = 0.5 + charge * 0.5;
+        ctx.lineWidth = 4;
+        ctx.setLineDash([14, 10]);
+        ctx.lineDashOffset = -progress * 60;
+        ctx.stroke();
+      }
       ctx.restore();
     };
 
@@ -553,25 +611,29 @@ export class Renderer {
       if (e.state !== 'telegraph') continue;
       const def = e.def;
       const p = 1 - clamp(e.telegraphUntil / def.attackWindup, 0, 1);
-      if (def.behavior === 'ranged') drawCone(e.x, e.y, e.facing, 320, 0.14, p);
-      else if (def.behavior === 'station') drawCone(e.x, e.y, e.facing, 340, 0.1, p);
-      else drawCircle(e.x, e.y, def.attackRange + e.radius, p);
+      const shape = def.tell ?? 'disc';
+      const size = shape === 'disc' ? def.attackRange + e.radius : shape === 'burst' ? def.attackRange * 2.2 : shape === 'beam' ? 340 : 320;
+      frame(shape, e.x, e.y, e.facing, size, p, def.tell === 'burst');
     }
 
     const b = state.boss;
     if (b && b.state === 'telegraph') {
       const phase = b.def.phases[b.phase];
       const p = 1 - clamp(b.telegraphUntil / Math.max(0.01, phase.telegraph), 0, 1);
-      if (phase.pattern === 'sweep') drawCone(b.x, b.y, b.facing, phase.radius ?? 340, 0.42, p);
-      else if (phase.pattern === 'beam') {
-        for (let i = -1; i <= 1; i++) drawCone(b.x, b.y, Math.atan2(state.player.y - b.y, state.player.x - b.x) + i * 0.42, 340, 0.055, p);
-      } else drawCircle(b.x, b.y, 190, p);
+      const aim = Math.atan2(state.player.y - b.y, state.player.x - b.x);
+      if (phase.pattern === 'sweep') frame('sweep', b.x, b.y, b.facing, phase.radius ?? 340, p);
+      else if (phase.pattern === 'beam') for (let i = -1; i <= 1; i++) frame('beam', b.x, b.y, aim + i * 0.42, 340, p);
+      else frame('burst', b.x, b.y, aim, 190, p);
     }
   }
 
   /**
-   * Poussiere en suspension. Une seule couche, pool fixe, recyclee : c'est
-   * ce qui donne de la profondeur a une scene sans nulla sur le budget.
+   * Poussières en suspension. Une seule couche, pool fixe, recyclé : c'est
+   * ce qui donne de la profondeur à une scène sans nulla sur le budget.
+   *
+   * Elles vivent dans l'espace ÉCRAN, pas dans le monde : si elles suivaient
+   * la caméra exactement, on lirait le décalage au lieu du décor. Le vent
+   * leur donne une vitesse propre.
    */
   drawMotes(ctx, state) {
     if (!this.motesReady) {
@@ -579,8 +641,6 @@ export class Renderer {
       this.motesReady = true;
     }
     this.motes.step(1 / 60, this.view.w, this.view.h, state.elapsed);
-    // Le vent emporte les poussieres a une vitesse propre : elles ne sont
-    // pas collees a la camera, sinon on lit le decalage au lieu du decor.
     const wind = state.elapsed * 9;
     this.motes.draw(
       ctx,

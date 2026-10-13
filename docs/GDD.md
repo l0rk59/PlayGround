@@ -56,14 +56,24 @@ départ dans une direction au hasard quand on lève le pouce.
 
 - **Tir automatique** sur la cible visible la plus proche, portée bornée.
   Un seul pouce : pas de visée à tenir en même temps que le déplacement.
-- **Esquive** : 0,32 s, i-frames entre 0,02 s et 0,26 s (pas toute la durée),
-  verrou de contrôle de 0,24 s, 3 charges, régénération après 0,45 s.
+- **Esquive** : 0,46 s, i-frames entre 0,03 s et 0,40 s (pas toute la durée),
+  verrou de contrôle de 0,34 s, 3 charges, recharge complète en 1,6 s.
+  Elle couvre **330 unités**, soit 1,46 × la vitesse de la menace la plus
+  rapide (la Meute, 226 u/s). C'est l'invariant central du jeu : sans lui,
+  l'esquive ne sert qu'à enjamber et le joueur perd à tous les coups.
 - **i-frames post-hit** : 0,55 s après un coup. Le stunlock en rafale est
   impossible et le joueur voit l'anneau d'invulnérabilité.
-- **Télégraphie** : chaque attaque ennemie a un délai d'annonce ≥ 0,42 s,
-  une forme (cône / cercle), un remplissage progressif et un son.
-  La couleur seule ne porte jamais l'information.
+- **Temps de réaction (TVR)** : délai d'annonce par famille, de 0,44 s
+  (morsure de la Meute) à 0,95 s (faisceau du Guetteur). Invariant :
+  **TVR ≥ durée des i-frames**, sinon le timing du joueur est une loterie.
+- **Télégraphie** : la forme dit *quel* coup, la pulsation dit *quand*.
+  `disc` cercle plein (frappe), `burst` double anneau (explosion),
+  `line` cône étroit (tir), `beam` rectangle long (faisceau),
+  `sweep` secteur large (boss). La couleur signifie « danger » partout :
+  elle ne porte jamais la différence.
 - **Mort** : `status = dead`, perte du butin temporaire, fin immédiate.
+- **Résistance** : un Rieur encaisse 6 coups avant de tuer la Survivante.
+  Encaisser est une décision, pas une absence de conséquence.
 
 ## 5. Contenu de la vertical slice
 

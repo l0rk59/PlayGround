@@ -15,8 +15,13 @@ export const PLAYER = {
   maxHealth: 100,
   /** Vitesse de base en unites monde / seconde. */
   speed: 190,
-  /** Fenetre d'invulnerabilite apres un coup recu (anti-stunlock). */
-  hurtIFrames: 0.55,
+  /**
+   * Fenetre d'invulnerabilite apres un coup recu (anti-stunlock).
+   * Elle doit rester PLUS LONGUE que le temps de reaction du coup
+   * justement encaisse, sinon le joueur est touche deux fois pour une
+   * seule mauvaise decision.
+   */
+  hurtIFrames: 0.75,
   /** Caree de base : degats reduits mais deplacement plus rapide. */
   baseArmor: 0.12,
   /** Delai avant qu'un soin puisse etre rejoue. */
@@ -26,31 +31,64 @@ export const PLAYER = {
 };
 
 export const DODGE = {
-  /** Impulsion initiale. */
-  impulse: 430,
-  /** Friction appliquee pendant le roulade. */
-  friction: 5.2,
+  /**
+   * Esquive.
+   *
+   * Mesure de conception : une esquive doit permettre de BATTRE la
+   * vitesse de marche de la menace la plus rapide, sinon elle ne sert
+   * qu'a enjamber et le joueur n'a aucun levier sur la situation.
+   *
+   * On impose donc `impulse / friction / (menace la plus rapide) >= 1.45`.
+   * Ici 990/3.0 = 330 u contre 226 u/s, soit 1.46 : trois chargesAllow. Avec trois
+   * charges et une recharge par 1.6 s, on peut en permanence rester dans
+   * le jeu de vitesse adverse sans etre rattrape.
+   */
+  impulse: 990,
+  /** Friction : plus basse = l'impulsion porte plus longtemps. */
+  friction: 3.0,
   /** Duree totale du roulade. */
-  duration: 0.32,
+  duration: 0.46,
   /** Fenetre reelle d'invulnerabilite : le debut, pas toute la duree. */
-  iFramesStart: 0.02,
-  iFramesEnd: 0.26,
-  cooldown: 0.72,
+  iFramesStart: 0.03,
+  iFramesEnd: 0.4,
+  /** Recharge complete d'une charge. C'est ce qui rend l'esquive une decision. */
+  cooldown: 1.6,
   /** Cout de vigueur, pour que l'esquive ne soit pas spammable. */
   stamina: 1,
   staminaMax: 3,
-  staminaRegen: 1.15,
-  staminaRegenDelay: 0.45,
+  staminaRegen: 1,
+  staminaRegenDelay: 0.4,
   /** Effet de transplantation : le joueur ne peut pas s'arreter net. */
-  controlLockEnd: 0.24,
+  controlLockEnd: 0.34,
+};
+
+/**
+ * Temps de reaction des families d'ennemis : ce que le joueur doit voir
+ * AVANT de pouvoir esquiver. C'est la seule fenetre de skill reel du jeu.
+ *
+ * Regle de conception : TVR >= duree des i-frames de l'esquive. Si un
+ * ennemi peut frapper pendant une fenetre plus courte que ton esquive,
+ * le timing devient une loterie et le jeu se joue a l'instinct.
+ */
+export const REACTION = {
+  /** Frappe de melee : lisible, mais serree. */
+  melee: 0.52,
+  /** Charge telegraphiee : ample, c'est le coup le plus dangereux. */
+  charge: 0.68,
+  /** Tir a distance : tres lisible, il doit pouvoir etre esquive en marchant. */
+  shot: 0.78,
+  /** Faisceau du guetteur : long, lent, brutal. */
+  beam: 0.95,
+  /** Le boss : toujours plus long qu'un ennemi normal. */
+  boss: 0.85,
 };
 
 export const WEAPONS = {
   pistol: {
     id: 'pistol',
     name: 'Pistol',
-    fireInterval: 0.38,
-    damage: 11,
+    fireInterval: 0.46,
+    damage: 15,
     bulletSpeed: 620,
     bulletLife: 0.85,
     spread: 0.035,
@@ -61,8 +99,8 @@ export const WEAPONS = {
   scattergun: {
     id: 'scattergun',
     name: 'Scattergun',
-    fireInterval: 0.78,
-    damage: 6,
+    fireInterval: 0.92,
+    damage: 9,
     pellets: 5,
     spread: 0.26,
     bulletSpeed: 480,
@@ -74,8 +112,8 @@ export const WEAPONS = {
   rail: {
     id: 'rail',
     name: 'Lance-rail',
-    fireInterval: 1.15,
-    damage: 34,
+    fireInterval: 1.35,
+    damage: 48,
     bulletSpeed: 900,
     bulletLife: 0.7,
     spread: 0.004,

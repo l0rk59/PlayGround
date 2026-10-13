@@ -17,3 +17,15 @@ android/capacitor.settings.gradle
 .DS_Store
 .vite/
 *.log
+
+*.pid
+
+.agents/
+
+.agentsweb/
+
+.omgithub-runtime/
+
+.opencode-ssh/
+
+.opencode-web/

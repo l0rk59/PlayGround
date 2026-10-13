@@ -10,7 +10,7 @@ import {
   useAbility,
   POI_BY_ID,
 } from '../src/sim/expedition.js';
-import { TICK, EXTRACTION, AIM } from '../src/data/tuning.js';
+import { TICK, EXTRACTION, AIM, DODGE, PLAYER, WEAPONS } from '../src/data/tuning.js';
 import { CLASSES, ENEMIES, BOSS } from '../src/data/content.js';
 import { REGION } from '../src/data/world.js';
 
@@ -249,8 +249,17 @@ test('expedition : les capacites de classe partent en cooldown et ne se cumulent
     assert.equal(useAbility(s), true, `${id} : la capacite part`);
     assert.ok(s.player.abilityCooldownUntil > 0, `${id} : un cooldown est ouvert`);
     assert.equal(useAbility(s), false, `${id} : pas de relance pendant le cooldown`);
-    // Le cooldown se resorbe tout seul, la capacite redevient disponible.
-    run(s, CLASSES[id].ability.cooldown + 1);
+    // On fait passer le temps SANS laisser le directeur de vagues tuer le
+    // joueur : ce test porte sur le cooldown, pas sur la resistance. On
+    // boucle sur la duree REELLE de la capacite de la classe.
+    const wait = Math.ceil(CLASSES[id].ability.cooldown * 60) + 60;
+    for (let i = 0; i < wait; i++) {
+      s.status = 'running';
+      s.player.dead = false;
+      s.player.health = s.player.maxHealth;
+      step(s, TICK, IDLE);
+    }
+    assert.equal(s.player.abilityCooldownUntil, 0, `${id} : le cooldown est-ecoule`);
     assert.equal(useAbility(s), true, `${id} : de nouveau disponible`);
   }
 });
@@ -300,16 +309,71 @@ test('expedition : hors du pad, le maintien se remet a zero', () => {
 
 test('expedition : chaque famille d ennemis tient ses promesses de conception', () => {
   const known = new Set(['charge', 'flank', 'ranged', 'station']);
+  const tells = new Set(['disc', 'burst', 'line', 'beam']);
   for (const [id, def] of Object.entries(ENEMIES)) {
     assert.ok(def.health > 0, `${id} a des PV`);
     assert.ok(def.damage > 0, `${id} fait des degats`);
     assert.ok(known.has(def.behavior), `${id} a un comportement implemente`);
-    assert.ok(def.attackWindup >= 0.3, `${id} : toute attaque est annoncee au moins 300 ms`);
+    assert.ok(tells.has(def.tell), `${id} a une forme de telegraphie`);
     assert.ok(def.attackRecover > 0, `${id} : le joueur a le temps de repartir apres le coup`);
-    assert.ok(def.telegraph <= def.attackWindup + 0.01, `${id} : la telegraphie annonce le coup`);
     if (def.behavior === 'ranged') assert.ok(def.projectileSpeed > 0, `${id} a un projectile`);
     if (def.behavior === 'station') assert.ok(def.speed === 0 && def.beam, `${id} est fixe et tire un faisceau`);
-    if (def.behavior === 'flank') assert.ok(def.speed > 120, `${id} doit etre plus vif qu'un simple marcheur`);
+  }
+});
+
+/**
+ * Invariants de sensation. Ces tests encodent les trois reproches faits
+ * sur la premiere version : « je ne peux rien faire » et « c'est un jeu
+ * niveau maternelle ». Ils échouent si l'equilibre retombe.
+ */
+test('feeling : l esquive permet de battre la vitesse de la menace la plus rapide', () => {
+  const fastest = Math.max(...Object.values(ENEMIES).map((e) => e.speed));
+  // Distance couverte par une esquive complete.
+  const reach = DODGE.impulse / DODGE.friction;
+  const secondsCovered = reach / PLAYER.speed;
+  assert.ok(
+    secondsCovered * PLAYER.speed > fastest * 0.9,
+    `une esquive (${reach.toFixed(0)} u) doit depasser la menace la plus rapide (${fastest} u/s)`,
+  );
+  // Sans ce ratio, l'esquive ne sert qu'a enjamber et le joueur perd a tous
+  // les coups : c'etait le reproche « je ne peux rien faire ».
+  assert.ok(reach / fastest >= 1.4, `couverture/escape = ${(reach / fastest).toFixed(2)}, attendu >= 1.4`);
+});
+
+test('feeling : tout ennemi annonce son coup plus longtemps que l esquive ne dure', () => {
+  const iFrame = DODGE.iFramesEnd - DODGE.iFramesStart;
+  for (const [id, def] of Object.entries(ENEMIES)) {
+    assert.ok(
+      def.attackWindup >= iFrame,
+      `${id} : TVR ${def.attackWindup}s < fenetre d'esquive ${iFrame}s — le timing serait une loterie`,
+    );
+  }
+});
+
+test('feeling : un ennemi de base tombe en deux tirs, pas en cinq', () => {
+  const pistol = WEAPONS.pistol;
+  const rieur = ENEMIES.rieur;
+  const shots = Math.ceil(rieur.health / pistol.damage);
+  assert.ok(shots >= 1 && shots <= 2, `le Rieur demande ${shots} tirs, attendu 1 ou 2`);
+});
+
+test('feeling : encaisser coute cher sans etre instant mortel', () => {
+  // Cinq Rieurs non esquives ne doivent pas vider la barre, mais six
+  // doivent le faire : la mort est une consequence, pas une surprise.
+  const s = createExpedition({ classId: 'survivante', meta: {}, seed: 3 });
+  const perHit = ENEMIES.rieur.damage * (1 - s.player.armor);
+  const survivable = Math.floor(s.player.maxHealth / perHit);
+  assert.ok(survivable >= 4 && survivable <= 8, `${survivable} coups encaissables, attendu 4 a 8`);
+});
+
+test('feeling : les ennemis qui auroient ete trop lents sont remontes', () => {
+  const walk = PLAYER.speed;
+  for (const [id, def] of Object.entries(ENEMIES)) {
+    if (def.speed === 0) continue; // les fixes ne poursuivent pas
+    assert.ok(
+      def.speed >= walk * 0.5,
+      `${id} a ${def.speed} u/s, trop lent face a un joueur a ${walk} — il ne fait plus pression`,
+    );
   }
 });
 

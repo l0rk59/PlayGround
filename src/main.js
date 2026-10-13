@@ -14,7 +14,8 @@ import './style.css';
 
 import { SaveStore } from './persist/store.js';
 import { defaultSettings } from './persist/schema.js';
-import { createExpedition, step as simStep, drain as drainEvents, finish as finishRun } from './sim/expedition.js';
+import * as Expedition from './sim/expedition.js';
+const { createExpedition, step: simStep, drain: drainEvents, finish: finishRun } = Expedition;
 import { lostOnDeath, upgradeCost } from './sim/rules.js';
 import { Renderer } from './render/renderer.js';
 import { actorSprite } from './render/sprites.js';
@@ -639,7 +640,7 @@ async function boot() {
 
   // Poignee d'inspection : le harnais de captures et les tests de fumée ont
   // besoin de lire l'etat sans passer par l'interface.
-  globalThis.__refuge = { game, renderer, screens, audio, sprites: { actorSprite, actorSheet } };
+  globalThis.__refuge = { game, renderer, screens, audio, sprites: { actorSprite, actorSheet }, sims: Expedition };
 
   registerServiceWorker();
 }

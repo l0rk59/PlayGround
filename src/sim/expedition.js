@@ -278,7 +278,7 @@ function stepCompanion(state, dt) {
 
 /* --------------------------------------------------------------- ENNEMIS -- */
 
-function spawnEnemy(state, id, x, y) {
+export function spawnEnemy(state, id, x, y) {
   const def = ENEMIES[id];
   if (!def) return null;
   const e = createFighter({

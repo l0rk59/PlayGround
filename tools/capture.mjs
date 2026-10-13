@@ -112,10 +112,41 @@ const run = async () => {
       document.getElementById('btnDeploy').click();
       await new Promise((r) => setTimeout(r, 2500));
       const g = globalThis.__refuge;
-      g.game.run.player.x = 900;
-      g.game.run.player.y = 900;
+      const run = g.game.run;
+      // On force un combat lisible : des ennemis a portee, tous a l'etat
+      // de telegraphie, pour que les quatre formes d'attaque soient
+      // visibles sur la meme image. C'est aussi la seule facon de
+      // verifier la lisibilite du combat — une capture de marche ne
+      // montre jamais le coeur du jeu.
+      run.timeLimit = 999;
+      run.player.x = 900;
+      run.player.y = 900;
       g.renderer.cam.x = 900;
       g.renderer.cam.y = 900;
+      run.enemies.length = 0;
+      const { spawnEnemy } = g.sims;
+      // Une famille par forme de telegraphie, a distance de frappe.
+      const cast = [
+        ['rieur', 70, -80],
+        ['plethore', 150, 60],
+        ['pleureuse', -170, -70],
+        ['meute', 190, 110],
+        ['guetteur', -200, 130],
+      ];
+      // On garde les ennemis en charge en continant la telegraphie : sinon
+      // la simulation les fait passer a l'attaque pendant la capture et on
+      // photographie le combat au mauvais moment.
+      window.__holdTell = setInterval(() => {
+        for (const e of run.enemies) {
+          e.state = 'telegraph';
+          e.telegraphUntil = e.def.attackWindup * 0.8;
+          e.facing = Math.atan2(run.player.y - e.y, run.player.x - e.x);
+        }
+      }, 16);
+      for (const [id, dx, dy] of cast) {
+        spawnEnemy(run, id, run.player.x + dx, run.player.y + dy);
+      }
+      run.player.health = run.player.maxHealth;
     });
     await page.waitForTimeout(900);
 
@@ -125,6 +156,21 @@ const run = async () => {
     });
     note(state.mode === 'run', `[${shot.name}] partie en cours`, state.status);
 
+    // Combat lisible : au moins un ennemi a l'ecran et au moins une
+    // telegraphie. Sans cela, une capture peut passer alors que le coeur
+    // du jeu est invisible — c'est exactement ce qui s'est produit.
+    await page.waitForTimeout(350);
+    const combat = await page.evaluate(() => {
+      const run = globalThis.__refuge.game.run;
+      return {
+        enemies: run.enemies.length,
+        telegraphing: run.enemies.filter((e) => e.state === 'telegraph').length,
+      };
+    });
+    note(combat.enemies >= 4, `[${shot.name}] les ennemis sont a l'ecran`, `${combat.enemies} ennemis`);
+    note(combat.telegraphing >= 3, `[${shot.name}] les telegraphies sont lisibles`, `${combat.telegraphing} en charge`);
+
+    await page.evaluate(() => clearInterval(window.__holdTell));
     const px = await countPlayerPixels(page);
     note(px.nonBackground / px.total > 0.02, `[${shot.name}] la scène est remplie`, `${((px.nonBackground / px.total) * 100).toFixed(1)} % de pixels éclairés`);
     note(px.bright > 60, `[${shot.name}] le joueur est visible`, `${px.bright} pixels de valeur haute`);

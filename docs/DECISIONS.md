@@ -149,6 +149,39 @@ ce n'est pas une musique de production, c'est une bande-son de slice.
 
 ---
 
+### D-16 · 2026-10-13 · Équilibre du combat — corrigé après test joueur
+
+**Décision :** rééquilibrage complet, dicté par le retour « je ne peux rien
+faire » et « c'est un jeu niveau maternelle ».
+
+**Ce qui n'allait pas, mesuré :**
+
+| Défaut | Mesure | Cause |
+|---|---|---|
+| Esquive décorative | 86 u couvertes contre 226 u/s pour la menace la plus rapide | `impulse/friction` trop faible |
+| Combat interminable | 34 PV ÷ 28,9 DPS = 1,17 s par Rieur, pendant qu'il faisait 9,8 DPS | PV trop hauts, dégâts trop bas |
+| Mort tolérante | 9 coups encaissables avant de mourir | 16 dégâts sur 120 PV |
+| Télégraphie uniforme | cercle rouge pour toute famille | une seule forme implémentée |
+
+**Corrections :** esquive à 330 u couvertes (1,46 × la menace la plus
+rapide), recharge en 1,6 s ; ennemis à 0,55–1,2 × la vitesse du joueur ;
+PV divisés par ~3 et dégâts doublés ; TVR explicite par famille, invariant
+`TVR ≥ durée des i-frames` ; quatre formes de télégraphie qui disent le coup
+( disque, explosion, cône, faisceau ).
+
+**Ennemis en teinte chaude, sol froid et désaturé.** Une règle de couleur
+réservée : le chaud appartient à la menace. Le bleu-gris appartient au monde
+mort. L'œil sépare les deux bandes de valeur et de température sans effort.
+
+**Garde-fous :** cinq tests encodent ces invariants. Ils échouent si
+l'équilibre retombe — c'est la seule façon d'empêcher une « sensation »
+de se dégrader en quelques commits.
+
+**Ce qui n'est toujours pas réglé :** aucun test sur téléphone réel. Les
+mesures viennent d'une simulation headless et d'un navigateur logiciel.
+
+---
+
 ### D-15 · 2026-10-13 · APK Android — tranché
 
 **Décision :** on livre un **APK natif** via une enveloppe Capacitor, en
