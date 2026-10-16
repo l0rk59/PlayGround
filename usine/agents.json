@@ -1,0 +1,47 @@
+{
+  "usine": "Usine IA Personnelle",
+  "version": "0.1.0",
+  "proprietaire": "PDG + valideur final (GO/STOP)",
+  "conseil_des_directeurs": [
+    { "id": 1, "titre": "Directeur Projets", "mission": "planning, risques, suivi des 7 blocs" },
+    { "id": 2, "titre": "Directeur Produit", "mission": "idées, priorisation, specs" },
+    { "id": 3, "titre": "Directeur Tech", "mission": "stack, architecture, templates" },
+    { "id": 4, "titre": "Directeur IA", "mission": "modèles, prompts, anti-hallucination" },
+    { "id": 5, "titre": "Directeur Data", "mission": "données, mémoire, confidentialité" },
+    { "id": 6, "titre": "Directeur Design", "mission": "design system, UX/UI" },
+    { "id": 7, "titre": "Directeur Qualité", "mission": "tests, revues, critères" },
+    { "id": 8, "titre": "Directeur Sécurité-Légal", "mission": "BYOK, RGPD, garde-fous" },
+    { "id": 9, "titre": "Directeur Ops", "mission": "déploiement, sauvegarde, coûts API" },
+    { "id": 10, "titre": "Directeur Amélioration", "mission": "boucle continue, versions" }
+  ],
+  "employes_agents": [
+    { "id": 1, "nom": "Idéateur", "poste": "génère 20-50 idées brutes", "sorties": ["idees.md"] },
+    { "id": 2, "nom": "Spécifieur", "poste": "idée -> PRD détaillé", "sorties": ["PRD-v1.md"] },
+    { "id": 3, "nom": "Designer", "poste": "design system + maquettes", "sorties": ["design-system.json"] },
+    { "id": 4, "nom": "Codeur Front", "poste": "écrans Next.js/PWA", "sorties": ["*.tsx"] },
+    { "id": 5, "nom": "Codeur Back", "poste": "API, données", "sorties": ["routes/*.ts"] },
+    { "id": 6, "nom": "Testeur", "poste": "tests unitaires + E2E", "sorties": ["rapport-tests.json"] },
+    { "id": 7, "nom": "Prompt Engineer", "poste": "prompts + garde-fous", "sorties": ["prompts/*"] },
+    { "id": 8, "nom": "Rédacteur", "poste": "textes UI, ebooks, contenu", "sorties": ["*.md"] },
+    { "id": 9, "nom": "Relecteur", "poste": "revue croisée", "sorties": ["revue-de-code.md"] },
+    { "id": 10, "nom": "Bibliothécaire", "poste": "mémoire de l'usine", "sorties": ["journal.md"] },
+    { "id": 11, "nom": "DevOps", "poste": "build, déploiement, sauvegarde", "sorties": ["journal-deploiement.md"] },
+    { "id": 12, "nom": "Veilleur", "poste": "veille modèles + pratiques", "sorties": ["veille.md"] }
+  ],
+  "pipeline": [
+    { "bloc": 0, "nom": "Idéation", "gardien": "Directeur Produit", "auto": true },
+    { "bloc": 1, "nom": "Spec", "gardien": "Directeur Produit", "auto": true, "go_propritaire": true },
+    { "bloc": 2, "nom": "Design", "gardien": "Directeur Design", "auto": true },
+    { "bloc": 3, "nom": "Fabrication", "gardien": "Directeur Tech", "auto": true },
+    { "bloc": 4, "nom": "Contrôle", "gardien": "Directeur Qualité", "auto": true, "go_propritaire": true },
+    { "bloc": 5, "nom": "Livraison", "gardien": "Directeur Ops", "auto": true },
+    { "bloc": 6, "nom": "Amélioration", "gardien": "Directeur Amélioration", "auto": true }
+  ],
+  "regles": [
+    "agent borné à sa fiche de poste",
+    "revue du directeur avant passage de bloc",
+    "décisions consignées par le Bibliothécaire",
+    "2 boutons propriétaire : GO / STOP",
+    "clés API uniquement via module BYOK"
+  ]
+}
